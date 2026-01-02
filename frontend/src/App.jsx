@@ -7,13 +7,16 @@ function App() {
 
   return (
     <>
-      <p class="text-lg text-gray-700">This is normal text</p>
+      <p className="text-lg text-gray-700">This is normal text</p>
 
-      <p class="text-xl font-semibold text-green-600">Success message</p>
+      <p className="text-xl font-semibold text-green-600">
+        Success message
+      </p>
 
-      <p class="text-sm text-red-500">Error message</p>
+      <p className="text-sm text-red-500">Error message</p>
     </>
   );
 }
 
 export default App;
+
