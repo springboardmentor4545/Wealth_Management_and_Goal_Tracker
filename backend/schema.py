@@ -57,6 +57,8 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    risk_profile: RiskProfile = Field(default=RiskProfile.moderate)
+    kyc_status: KYCStatus = Field(default=KYCStatus.unverified)
 
 
 class UserResponse(UserBase):
@@ -65,6 +67,11 @@ class UserResponse(UserBase):
 
     class Config:
         from_attributes = True
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
 
 
 # ================== GOALS ==================
