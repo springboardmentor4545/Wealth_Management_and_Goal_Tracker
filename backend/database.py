@@ -20,20 +20,28 @@ def get_db_connection():
     )
 
 def create_tables():
+    """
+    Create database tables for the Wealth Management API.
+    Note: This function is for development/testing purposes.
+    Cloud database is already created and managed separately.
+    """
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # Users table with authentication fields
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
-        age INT NOT NULL,
-        monthly_income NUMERIC NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        risk_profile VARCHAR(20) DEFAULT 'moderate',
+        kyc_status VARCHAR(20) DEFAULT 'unverified',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
 
+    # Goals table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS goals (
         id SERIAL PRIMARY KEY,

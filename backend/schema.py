@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, Dict
 from datetime import datetime, date
 from enum import Enum
@@ -56,9 +56,18 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., min_length=8, max_length=16, description="Password must be 8-16 characters")
     risk_profile: RiskProfile = Field(default=RiskProfile.moderate)
     kyc_status: KYCStatus = Field(default=KYCStatus.unverified)
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters')
+        if len(v) > 16:
+            raise ValueError('Password must not exceed 16 characters')
+        return v
 
 
 class UserResponse(UserBase):
