@@ -1,18 +1,22 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { loginUser } from "../services/auth";
+import { Link, useNavigate } from "react-router-dom";
+import { loginUser } from "../api/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const res = await loginUser({ email, password });
     if (res) {
       setSuccess("✅ Login successful");
+      setTimeout(() => {
+        navigate("/home");
+      }, 1000);
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { signupUser } from "../services/auth";
+import { signupUser } from "../api/auth";
 
 export default function Signup() {
   const [name, setName] = useState("");
