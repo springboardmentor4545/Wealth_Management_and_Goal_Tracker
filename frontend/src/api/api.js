@@ -1,15 +1,28 @@
-import { Routes, Route } from "react-router-dom";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
+import axios from "axios";
 
-function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-    </Routes>
-  );
-}
+const API = axios.create({
+  baseURL: "http://127.0.0.1:8000",
+});
 
-export default App;
+// ---------- AUTH APIS ----------
+
+// SIGNUP
+export const signupUser = (data) => {
+  return API.post("/auth/signup", data);
+};
+
+// LOGIN (OAuth2PasswordRequestForm)
+export const loginUser = (email, password) => {
+  const formData = new URLSearchParams();
+  formData.append("username", email);
+  formData.append("password", password);
+
+  return API.post("/auth/login", formData, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+};
+
+export default API;
+
