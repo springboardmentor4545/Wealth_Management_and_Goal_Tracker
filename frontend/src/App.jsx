@@ -1,22 +1,15 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+import { Routes, Route } from "react-router-dom";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <>
-      <p className="text-lg text-gray-700">This is normal text</p>
-
-      <p className="text-xl font-semibold text-green-600">
-        Success message
-      </p>
-
-      <p className="text-sm text-red-500">Error message</p>
-    </>
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+    </Routes>
   );
 }
 
 export default App;
-
