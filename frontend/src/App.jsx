@@ -1,19 +1,31 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+import { useState, useEffect } from "react";
+import Auth from "./components/Auth";
+import Home from "./components/Home";
+import { isAuthenticated } from "./api/api";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check if user is already logged in
+    setIsLoggedIn(isAuthenticated());
+  }, []);
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  };
 
   return (
     <>
-      <p className="text-lg text-gray-700">This is normal text</p>
-
-      <p className="text-xl font-semibold text-green-600">
-        Success message
-      </p>
-
-      <p className="text-sm text-red-500">Error message</p>
+      {isLoggedIn ? (
+        <Home onLogout={handleLogout} />
+      ) : (
+        <Auth onLoginSuccess={handleLoginSuccess} />
+      )}
     </>
   );
 }
