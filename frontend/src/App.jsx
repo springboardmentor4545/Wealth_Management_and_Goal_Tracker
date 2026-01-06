@@ -1,34 +1,16 @@
-import { useState, useEffect } from "react";
-import Auth from "./components/Auth";
-import Home from "./components/Home";
-import { isAuthenticated } from "./api/api";
+
+import { Routes, Route } from "react-router-dom";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    // Check if user is already logged in
-    setIsLoggedIn(isAuthenticated());
-  }, []);
-
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-  };
-
   return (
-    <>
-      {isLoggedIn ? (
-        <Home onLogout={handleLogout} />
-      ) : (
-        <Auth onLoginSuccess={handleLoginSuccess} />
-      )}
-    </>
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+    </Routes>
   );
 }
 
 export default App;
-
