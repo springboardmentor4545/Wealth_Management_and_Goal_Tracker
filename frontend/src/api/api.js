@@ -1,41 +1,69 @@
-const BASE_URL = "http://localhost:8000/auth";
+const API_BASE_URL = "http://localhost:8000";
 
-/* Signup API */
-export const signupUser = async (userData) => {
-  const response = await fetch(`${BASE_URL}/signup`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(userData),
-  });
+// Signup API call
+export const signup = async (userData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
 
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.detail || "Signup failed");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Signup failed");
+    }
+
+    return data;
+  } catch (error) {
+    throw error;
   }
-
-  return response.json();
 };
 
-/* Login API */
-export const loginUser = async (email, password) => {
-  const formData = new URLSearchParams();
-  formData.append("username", email);
-  formData.append("password", password);
+// Login API call
+export const login = async (email, password) => {
+  try {
+    const formData = new URLSearchParams();
+    formData.append("username", email);
+    formData.append("password", password);
 
-  const response = await fetch(`${BASE_URL}/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: formData,
-  });
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData,
+    });
 
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.detail || "Login failed");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Login failed");
+    }
+
+    // Store the token in localStorage
+    localStorage.setItem("access_token", data.access_token);
+
+    return data;
+  } catch (error) {
+    throw error;
   }
+};
 
-  return response.json();
+// Logout function
+export const logout = () => {
+  localStorage.removeItem("access_token");
+};
+
+// Get current token
+export const getToken = () => {
+  return localStorage.getItem("access_token");
+};
+
+// Check if user is authenticated
+export const isAuthenticated = () => {
+  return !!getToken();
 };
