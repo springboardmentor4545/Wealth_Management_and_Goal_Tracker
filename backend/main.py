@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from auth import router as auth_router
+from auth.routes import router as auth_router
 from database import get_db_connection
 
 load_dotenv()
@@ -30,7 +30,7 @@ def get_users():
     # created to see the user table and test auth route
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT id, name, email, risk_profile, kyc_status, created_at FROM users")
+    cur.execute("SELECT id, name, email, risk_profile, kyc_status, created_at,password FROM users")
     users = cur.fetchall()  
     cur.close()
     conn.close()
