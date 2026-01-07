@@ -1,0 +1,9 @@
+venv/
+.env
+__pycache__/
+*.pyc
+backend/db_init.py
+node_modules/
+.env
+venv/
+__pycache__/

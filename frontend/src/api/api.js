@@ -1,28 +1,69 @@
-import axios from "axios";
+const API_BASE_URL = "http://localhost:8000";
 
-const API = axios.create({
-  baseURL: "http://127.0.0.1:8000",
-});
+// Signup API call
+export const signup = async (userData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
 
-// ---------- AUTH APIS ----------
+    const data = await response.json();
 
-// SIGNUP
-export const signupUser = (data) => {
-  return API.post("/auth/signup", data);
+    if (!response.ok) {
+      throw new Error(data.detail || "Signup failed");
+    }
+
+    return data;
+  } catch (error) {
+    throw error;
+  }
 };
 
-// LOGIN (OAuth2PasswordRequestForm)
-export const loginUser = (email, password) => {
-  const formData = new URLSearchParams();
-  formData.append("username", email);
-  formData.append("password", password);
+// Login API call
+export const login = async (email, password) => {
+  try {
+    const formData = new URLSearchParams();
+    formData.append("username", email);
+    formData.append("password", password);
 
-  return API.post("/auth/login", formData, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-  });
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Login failed");
+    }
+
+    // Store the token in localStorage
+    localStorage.setItem("access_token", data.access_token);
+
+    return data;
+  } catch (error) {
+    throw error;
+  }
 };
 
-export default API;
+// Logout function
+export const logout = () => {
+  localStorage.removeItem("access_token");
+};
 
+// Get current token
+export const getToken = () => {
+  return localStorage.getItem("access_token");
+};
+
+// Check if user is authenticated
+export const isAuthenticated = () => {
+  return !!getToken();
+};

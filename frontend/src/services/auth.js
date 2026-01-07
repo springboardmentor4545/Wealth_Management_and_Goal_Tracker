@@ -1,10 +1,23 @@
-import api from "./api";
+import axios from "axios";
 
-export const loginUser = (data) =>
-  api.post("/login", data);
+const API_URL = "http://127.0.0.1:8000"; 
 
-export const signupUser = (data) =>
-  api.post("/signup", data);
+export const signupUser = async (data) => {
+  try {
+    const res = await axios.post(`${API_URL}/signup`, data);
+    return res.data; 
+  } catch (err) {
+    alert(err.response?.data?.detail || "Signup failed");
+    return null;
+  }
+};
 
-const API_URL = "http://127.0.0.1:8000";
-
+export const loginUser = async (data) => {
+  try {
+    const res = await axios.post(`${API_URL}/login`, data);
+    return res.data; 
+  } catch (err) {
+    alert(err.response?.data?.detail || "Login failed");
+    return null;
+  }
+};
