@@ -1,81 +1,44 @@
 import { useState } from "react";
-import RiskQuestion from "../components/RiskQuestion";
 
-function RiskProfile() {
-  const [totalScore, setTotalScore] = useState(0);
-  const [submitted, setSubmitted] = useState(false);
+function RiskQuestion({ question, options, onAnswer }) {
+  const [selectedIndex, setSelectedIndex] = useState(null);
 
-  const questions = [
-    {
-      question: "How do you react to market volatility?",
-      options: [
-        { label: "I avoid risk completely", score: 2 },
-        { label: "I wait and watch", score: 4 },
-        { label: "I invest more", score: 6 },
-      ],
-    },
-    {
-      question: "What is your investment horizon?",
-      options: [
-        { label: "Less than 1 year", score: 2 },
-        { label: "1–3 years", score: 4 },
-        { label: "More than 5 years", score: 6 },
-      ],
-    },
-    {
-      question: "How familiar are you with investments?",
-      options: [
-        { label: "Beginner", score: 2 },
-        { label: "Intermediate", score: 4 },
-        { label: "Expert", score: 6 },
-      ],
-    },
-  ];
-
-  const getRiskType = () => {
-    if (totalScore <= 10) return "Conservative";
-    if (totalScore <= 18) return "Moderate";
-    return "Aggressive";
+  const handleSelect = (score, index) => {
+    if (selectedIndex === null) {
+      setSelectedIndex(index);
+      onAnswer(score); // Person-3 will handle this
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <h2 className="text-3xl font-bold text-center mb-6">
-        Risk Profiling
-      </h2>
+    <div className="bg-white p-4 mb-4 rounded-lg shadow">
+      <h3 className="text-lg font-semibold mb-3">{question}</h3>
 
-      {!submitted ? (
-        <>
-          {questions.map((q, index) => (
-            <RiskQuestion
+      <div className="space-y-2">
+        {options.map((opt, index) => {
+          const isSelected = selectedIndex === index;
+
+          return (
+            <button
               key={index}
-              question={q.question}
-              options={q.options}
-              onAnswer={(score) =>
-                setTotalScore((prev) => prev + score)
-              }
-            />
-          ))}
-
-          <button
-            onClick={() => setSubmitted(true)}
-            className="block mx-auto mt-6 bg-purple-600 text-white px-6 py-2 rounded-lg"
-          >
-            Submit
-          </button>
-        </>
-      ) : (
-        <div className="text-center mt-10">
-          <h3 className="text-xl font-semibold">
-            Your Risk Profile:
-          </h3>
-          <p className="text-2xl font-bold text-purple-600 mt-2">
-            {getRiskType()}
-          </p>
-        </div>
-      )}
+              onClick={() => handleSelect(opt.score, index)}
+              disabled={selectedIndex !== null}
+              className={`w-full text-left px-4 py-2 rounded border transition
+                ${
+                  isSelected
+                    ? "bg-purple-600 text-white border-purple-600"
+                    : "hover:bg-purple-100"
+                }
+                ${selectedIndex !== null && !isSelected ? "opacity-50" : ""}
+              `}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-export default RiskProfile;
+export default RiskQuestion;
