@@ -4,10 +4,8 @@ function RiskQuestion({ question, options, onAnswer }) {
   const [selectedIndex, setSelectedIndex] = useState(null);
 
   const handleSelect = (score, index) => {
-    if (selectedIndex === null) {
-      setSelectedIndex(index);
-      onAnswer(score); // Person-3 will handle this
-    }
+    setSelectedIndex(index);
+    onAnswer(score);
   };
 
   return (
@@ -22,14 +20,12 @@ function RiskQuestion({ question, options, onAnswer }) {
             <button
               key={index}
               onClick={() => handleSelect(opt.score, index)}
-              disabled={selectedIndex !== null}
               className={`w-full text-left px-4 py-2 rounded border transition
                 ${
                   isSelected
                     ? "bg-purple-600 text-white border-purple-600"
-                    : "hover:bg-purple-100"
+                    : "hover:bg-purple-100 border-gray-300"
                 }
-                ${selectedIndex !== null && !isSelected ? "opacity-50" : ""}
               `}
             >
               {opt.label}
