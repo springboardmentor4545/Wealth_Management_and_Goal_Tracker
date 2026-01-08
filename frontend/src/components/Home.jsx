@@ -1,9 +1,12 @@
-import { logout } from "../api/api";
+import { logoutUser } from "../api/auth";
+import { useNavigate } from "react-router-dom";
 
-function Home({ onLogout }) {
+function Home() {
+  const navigate = useNavigate();
+
   const handleLogout = () => {
-    logout();
-    onLogout();
+    logoutUser();
+    navigate("/login");
   };
 
   return (
