@@ -7,7 +7,6 @@ import os
 load_dotenv()
 
 
-
 def get_db_connection():
     return psycopg2.connect(
         host=os.getenv("DB_HOST"),
@@ -15,30 +14,42 @@ def get_db_connection():
         database=os.getenv("DB_NAME"),
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
-        sslmode="require",   
+        sslmode="require",
         cursor_factory=RealDictCursor
     )
+
 
 def create_tables():
     """
     Create database tables for the Wealth Management API.
-    Note: This function is for development/testing purposes.
-    Cloud database is already created and managed separately.
+    This is for local/dev usage.
+    Production DB already exists.
     """
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Users table with authentication fields
+    # Users table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        risk_profile VARCHAR(20) CHECK (risk_profile IN ('conservative', 'moderate', 'aggressive')) DEFAULT 'moderate',
-        kyc_status VARCHAR(20) CHECK (kyc_status IN ('unverified', 'verified')) DEFAULT 'unverified',
+        risk_profile VARCHAR(20)
+            CHECK (risk_profile IN ('conservative', 'moderate', 'aggressive'))
+            DEFAULT 'moderate',
+        kyc_status VARCHAR(20)
+            CHECK (kyc_status IN ('unverified', 'verified'))
+            DEFAULT 'unverified',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    """)
+
+    # 🔹 ADD REQUIRED NEW COLUMNS (SAFE)
+    cur.execute("""
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS risk_score INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN DEFAULT FALSE;
     """)
 
     # Goals table
@@ -46,11 +57,14 @@ def create_tables():
     CREATE TABLE IF NOT EXISTS goals (
         id SERIAL PRIMARY KEY,
         user_id INT REFERENCES users(id) ON DELETE CASCADE,
-        goal_type VARCHAR(20) CHECK (goal_type IN ('retirement', 'home', 'education', 'custom')) NOT NULL,
+        goal_type VARCHAR(20)
+            CHECK (goal_type IN ('retirement', 'home', 'education', 'custom')) NOT NULL,
         target_amount NUMERIC NOT NULL,
         target_date DATE NOT NULL,
         monthly_contribution NUMERIC NOT NULL,
-        status VARCHAR(20) CHECK (status IN ('active', 'paused', 'completed')) DEFAULT 'active',
+        status VARCHAR(20)
+            CHECK (status IN ('active', 'paused', 'completed'))
+            DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
@@ -60,7 +74,8 @@ def create_tables():
     CREATE TABLE IF NOT EXISTS investments (
         id SERIAL PRIMARY KEY,
         user_id INT REFERENCES users(id) ON DELETE CASCADE,
-        asset_type VARCHAR(20) CHECK (asset_type IN ('stock', 'etf', 'mutual_fund', 'bond', 'cash')) NOT NULL,
+        asset_type VARCHAR(20)
+            CHECK (asset_type IN ('stock', 'etf', 'mutual_fund', 'bond', 'cash')) NOT NULL,
         symbol VARCHAR(20) NOT NULL,
         units NUMERIC NOT NULL,
         avg_buy_price NUMERIC NOT NULL,
@@ -77,7 +92,8 @@ def create_tables():
         id SERIAL PRIMARY KEY,
         user_id INT REFERENCES users(id) ON DELETE CASCADE,
         symbol VARCHAR(20) NOT NULL,
-        type VARCHAR(20) CHECK (type IN ('buy', 'sell', 'dividend', 'contribution', 'withdrawal')) NOT NULL,
+        type VARCHAR(20)
+            CHECK (type IN ('buy', 'sell', 'dividend', 'contribution', 'withdrawal')) NOT NULL,
         quantity NUMERIC NOT NULL,
         price NUMERIC NOT NULL,
         fees NUMERIC DEFAULT 0,
