@@ -13,7 +13,15 @@ def get_risk_questions():
         cur = conn.cursor()
 
         cur.execute("""
-            SELECT id, question_text, weight
+            SELECT 
+                id,
+                question,
+                option1,
+                option2,
+                option3,
+                option1_score,
+                option2_score,
+                option3_score
             FROM risk_questions
             ORDER BY id
         """)
@@ -26,9 +34,13 @@ def get_risk_questions():
         return {
             "questions": [
                 {
-                    "question_id": r["id"],
-                    "question": r["question_text"],
-                    "weight": r["weight"]
+                    "question_id": r[0],
+                    "question": r[1],
+                    "options": [
+                        {"text": r[2], "score": r[5]},
+                        {"text": r[3], "score": r[6]},
+                        {"text": r[4], "score": r[7]},
+                    ]
                 }
                 for r in rows
             ]
