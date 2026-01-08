@@ -48,6 +48,27 @@ export const getToken = () => {
   return localStorage.getItem("access_token");
 };
 
+// Get current user profile
+export const getCurrentUser = async () => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error("No token found");
+    }
+
+    const res = await axios.get(`${API_URL}/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("Failed to fetch user:", err);
+    throw err;
+  }
+};
+
 // Check if user is authenticated
 export const isAuthenticated = () => {
   return !!getToken();
