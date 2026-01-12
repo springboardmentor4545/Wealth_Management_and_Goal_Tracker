@@ -75,4 +75,4 @@ CREATE TABLE simulations (
     assumptions JSONB,
     results JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+);pip install pydantic==1.10.13
