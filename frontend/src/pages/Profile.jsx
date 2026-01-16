@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import api from '../lib/api'
 
-export default function Profile({ token, onLogout, onRiskClick }){
+export default function Profile({ token, onLogout, onRiskClick, onGoalsClick, onPortfolioClick }){
   const [user, setUser] = useState(null)
   const [err, setErr] = useState(null)
 
@@ -29,6 +29,18 @@ export default function Profile({ token, onLogout, onRiskClick }){
         <h1 className="text-xl font-bold text-gray-800">My Dashboard</h1>
         <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600 hidden sm:inline">{user?.email}</span>
+            <button 
+                onClick={onGoalsClick}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1 border border-blue-200 rounded-md hover:bg-blue-50 transition-colors"
+            >
+                My Goals
+            </button>
+            <button 
+                onClick={onPortfolioClick}
+                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium px-3 py-1 border border-indigo-200 rounded-md hover:bg-indigo-50 transition-colors"
+            >
+                Portfolio
+            </button>
             <button 
                 onClick={()=>{ localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token'); onLogout && onLogout() }}
                 className="text-sm text-red-500 hover:text-red-700 font-medium px-3 py-1 border border-red-200 rounded-md hover:bg-red-50 transition-colors"

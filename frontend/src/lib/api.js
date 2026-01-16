@@ -58,4 +58,49 @@ export function setKyc(status, token) {
     })
 }
 
-export default { register, login, refresh, me, getRiskQuestions, submitRisk, setKyc }
+// --- GOALS API ---
+export function getGoals(token) {
+    return request('/goals/', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+    })
+}
+
+export function createGoal(goal, token) {
+    return request('/goals/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(goal)
+    })
+}
+
+export function deleteGoal(id, token) {
+    return request(`/goals/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    })
+}
+
+// --- PORTFOLIO API ---
+export function getHoldings(token) {
+    return request('/portfolio/holdings', { headers: { 'Authorization': `Bearer ${token}` } })
+}
+
+export function getTransactions(token) {
+    return request('/portfolio/transactions', { headers: { 'Authorization': `Bearer ${token}` } })
+}
+
+export function createTransaction(data, token) {
+    return request('/portfolio/transaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(data)
+    })
+}
+
+export default { 
+    register, login, refresh, me, 
+    getRiskQuestions, submitRisk, setKyc, 
+    getGoals, createGoal, deleteGoal,
+    getHoldings, getTransactions, createTransaction 
+}

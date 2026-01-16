@@ -43,3 +43,72 @@ class Token(BaseModel):
 
 class RefreshToken(BaseModel):
     refresh_token: str
+
+
+# --- GOAL SCHEMAS ---
+
+from datetime import datetime
+
+class GoalBase(BaseModel):
+    title: str
+    target_amount: int
+    target_date: datetime
+    monthly_contribution: Optional[int] = 0
+
+class GoalCreate(GoalBase):
+    pass
+
+class GoalUpdate(BaseModel):
+    title: Optional[str] = None
+    target_amount: Optional[int] = None
+    target_date: Optional[datetime] = None
+    monthly_contribution: Optional[int] = None
+    current_amount: Optional[int] = None
+
+class GoalOut(GoalBase):
+    id: int
+    user_id: int
+    current_amount: int
+    created_at: datetime
+    
+    # Calculated Fields
+    duration_months: Optional[float] = 0.0
+    required_monthly_investment: Optional[float] = 0.0
+    progress_percentage: Optional[float] = 0.0
+
+    class Config:
+        from_attributes = True # updated for Pydantic v2 support if needed, or stick to orm_mode for v1 compatibility
+        orm_mode = True 
+
+
+# --- PORTFOLIO SCHEMAS ---
+
+class TransactionBase(BaseModel):
+    symbol: str
+    transaction_type: str # "BUY" or "SELL"
+    quantity: float
+    price_per_unit: float
+    asset_type: Optional[str] = "Stock"
+
+class TransactionCreate(TransactionBase):
+    pass
+
+class TransactionOut(TransactionBase):
+    id: int
+    user_id: int
+    total_amount: float
+    date: datetime
+
+    class Config:
+        orm_mode = True
+
+class InvestmentOut(BaseModel):
+    symbol: str
+    asset_type: str
+    quantity: float
+    average_buy_price: float
+    current_value: Optional[float] = 0.0 # Calculated field
+
+    class Config:
+        orm_mode = True
+

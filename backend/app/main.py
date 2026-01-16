@@ -9,11 +9,16 @@ load_dotenv()
 
 from . import models, schemas, database, crud, auth
 from . import risk_questions
+from .routers import goals, portfolio # Import portfolio router
 from fastapi import Body
 
 app = FastAPI()
 
-# Force server reload for risk questions update
+app.include_router(goals.router)
+app.include_router(goals.router)
+app.include_router(portfolio.router) # Include portfolio router
+
+# Force server reload for portfolio update 2
 
 
 # Allow cross-origin requests from frontend (development)

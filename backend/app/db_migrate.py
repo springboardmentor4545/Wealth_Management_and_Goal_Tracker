@@ -13,6 +13,45 @@ queries = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS risk_category VARCHAR DEFAULT 'unknown';",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_notes TEXT;",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR;",
+    
+    # Create Goals Table
+    """
+    CREATE TABLE IF NOT EXISTS goals (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        title VARCHAR NOT NULL,
+        target_amount INTEGER NOT NULL,
+        target_date TIMESTAMP WITH TIME ZONE NOT NULL,
+        monthly_contribution INTEGER DEFAULT 0,
+        current_amount INTEGER DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    """,
+    # Create Investments Table
+    """
+    CREATE TABLE IF NOT EXISTS investments (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        symbol VARCHAR NOT NULL,
+        asset_type VARCHAR DEFAULT 'Stock',
+        quantity FLOAT DEFAULT 0,
+        average_buy_price FLOAT DEFAULT 0,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    """,
+    # Create Transactions Table
+    """
+    CREATE TABLE IF NOT EXISTS transactions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        symbol VARCHAR NOT NULL,
+        transaction_type VARCHAR NOT NULL,
+        quantity FLOAT NOT NULL,
+        price_per_unit FLOAT NOT NULL,
+        total_amount FLOAT NOT NULL,
+        date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    """
 ]
 
 def migrate():
