@@ -1,0 +1,53 @@
+# Ignore environment files
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environments
+venv/
+env/
+backend/venv/
+frontend/venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build / dist
+dist/
+build/
+/.vite
+
+# Logs
+*.log
+
+# Coverage
+.coverage
+coverage/
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Packaging
+*.egg
+*.egg-info/
+pip-wheel-metadata/
+
+# npm/yarn lockfiles (optional to ignore)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
