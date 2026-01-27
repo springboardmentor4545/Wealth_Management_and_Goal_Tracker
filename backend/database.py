@@ -14,7 +14,7 @@ def get_db_connection():
         database=os.getenv("DB_NAME"),
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
-        sslmode="require",
+        #sslmode="disable",
         cursor_factory=RealDictCursor
     )
 
@@ -52,13 +52,14 @@ def create_tables():
     ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN DEFAULT FALSE;
     """)
 
-    # Goals table
+    # Goals table - UPDATED WITH ALL GOAL TYPES
     cur.execute("""
     CREATE TABLE IF NOT EXISTS goals (
         id SERIAL PRIMARY KEY,
         user_id INT REFERENCES users(id) ON DELETE CASCADE,
         goal_type VARCHAR(20)
-            CHECK (goal_type IN ('retirement', 'home', 'education', 'custom')) NOT NULL,
+            CHECK (goal_type IN ('retirement', 'education', 'travel', 'emergency', 'home', 'vehicle'))
+            NOT NULL,
         target_amount NUMERIC NOT NULL,
         target_date DATE NOT NULL,
         monthly_contribution NUMERIC NOT NULL,
@@ -144,3 +145,5 @@ def create_tables():
     conn.commit()
     cur.close()
     conn.close()
+    
+    print("✅ Database tables created successfully!")

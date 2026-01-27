@@ -61,10 +61,31 @@ def get_risk_questions():
 @router.post("/assessment")
 def submit_risk_assessment(data: RiskAssessmentSubmit):
     try:
-        # Calculate total score from answers
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # 🔒 1. CHECK IF USER EXISTS + PROFILE STATUS
+        cur.execute("""
+            SELECT profile_completed
+            FROM users
+            WHERE id = %s
+        """, (data.user_id,))
+
+        user = cur.fetchone()
+
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if user["profile_completed"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Risk assessment already completed"
+            )
+
+        # 🔢 2. CALCULATE TOTAL SCORE
         total_score = sum(answer.score for answer in data.answers)
 
-        # ✅ SCORING LOGIC
+        # ✅ 3. SCORING LOGIC (UNCHANGED)
         if 0 <= total_score <= 10:
             profile = "conservative"
         elif 11 <= total_score <= 18:
@@ -74,9 +95,7 @@ def submit_risk_assessment(data: RiskAssessmentSubmit):
         else:
             raise HTTPException(status_code=400, detail="Invalid risk score")
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-
+        # 📝 4. UPDATE USER RECORD
         cur.execute("""
             UPDATE users
             SET 
@@ -98,5 +117,7 @@ def submit_risk_assessment(data: RiskAssessmentSubmit):
             "kyc_status": data.kyc_status
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

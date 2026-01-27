@@ -21,6 +21,8 @@ class GoalType(str, Enum):
     retirement = "retirement"
     home = "home"
     education = "education"
+    travel = "travel"
+    emergency = "emergency"
     custom = "custom"
 
 
@@ -51,27 +53,41 @@ class TransactionType(str, Enum):
 class UserBase(BaseModel):
     name: str
     email: EmailStr
-    risk_profile: RiskProfile
-    kyc_status: KYCStatus
 
 
+# ✅ SIGNUP - Only name, email, password required
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8, max_length=16, description="Password must be 8-16 characters")
-    risk_profile: RiskProfile = Field(default=RiskProfile.moderate)
-    kyc_status: KYCStatus = Field(default=KYCStatus.unverified)
+    password: str = Field(..., min_length=8, max_length=72, description="Password must be 8-72 characters")
     
     @field_validator('password')
     @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
-        if len(v) > 16:
-            raise ValueError('Password must not exceed 16 characters')
+        if len(v) > 72:  # bcrypt limit
+            raise ValueError('Password must not exceed 72 characters')
+        # Check for uppercase
+        if not any(c.isupper() for c in v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        # Check for lowercase
+        if not any(c.islower() for c in v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        # Check for number
+        if not any(c.isdigit() for c in v):
+            raise ValueError('Password must contain at least one number')
+        # Check for special character
+        if not any(not c.isalnum() for c in v):
+            raise ValueError('Password must contain at least one special character')
         return v
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     id: int
+    name: str
+    email: EmailStr
+    risk_profile: str
+    kyc_status: str
+    profile_completed: bool
     created_at: datetime
 
     class Config:
@@ -81,6 +97,20 @@ class UserResponse(UserBase):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+    user: UserResponse  # ✅ Include user data in token response
+
+
+# ================== RISK QUESTIONS ==================
+
+class RiskOption(BaseModel):
+    text: str
+    score: int
+
+
+class RiskQuestionResponse(BaseModel):
+    question_id: int
+    question: str
+    options: list[RiskOption]
 
 
 # ================== RISK ASSESSMENT ==================
@@ -103,16 +133,18 @@ class GoalBase(BaseModel):
     target_amount: float
     target_date: date
     monthly_contribution: float
-    status: GoalStatus
+    status: GoalStatus = GoalStatus.active
 
 
-class GoalCreate(GoalBase):
-    user_id: int
+class GoalCreate(BaseModel):
+    goal_type: str
+    target_amount: float
+    target_date: date
+    monthly_contribution: float
 
 
 class GoalResponse(GoalBase):
     id: int
-    user_id: int
     created_at: datetime
 
     class Config:
