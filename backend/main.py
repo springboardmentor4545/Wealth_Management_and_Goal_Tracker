@@ -1,15 +1,51 @@
 from fastapi import FastAPI, HTTPException, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, Enum as SQLEnum, ForeignKey, Date, Numeric
+import enum
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, relationship
 from jose import JWTError, jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 import hashlib
-import uvicorn  # Add this for running
+import uvicorn
+
+# ENUM definitions for the database
+class RiskProfileType(enum.Enum):
+    conservative = "conservative"
+    moderate = "moderate"
+    aggressive = "aggressive"
+
+class KYCStatusType(enum.Enum):
+    unverified = "unverified"
+    verified = "verified"
+
+class GoalType(enum.Enum):
+    retirement = "retirement"
+    home = "home"
+    education = "education"
+    custom = "custom"
+
+class GoalStatus(enum.Enum):
+    active = "active"
+    paused = "paused"
+    completed = "completed"
+
+class AssetType(enum.Enum):
+    stock = "stock"
+    etf = "etf"
+    mutual_fund = "mutual_fund"
+    bond = "bond"
+    cash = "cash"
+
+class TransactionType(enum.Enum):
+    buy = "buy"
+    sell = "sell"
+    dividend = "dividend"
+    contribution = "contribution"
+    withdrawal = "withdrawal"
 
 # Database configuration
 DATABASE_URL = "postgresql://postgres:Thaanish22*@localhost/wealth_tracker"
@@ -25,15 +61,60 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(100), unique=True, index=True)
     email = Column(String(120), unique=True, index=True)
-    full_name = Column(String(100))
+    name = Column(String(100))
     hashed_password = Column(String(255))
-    kyc_completed = Column(Boolean, default=False)
-    kyc_status = Column(String(50), default="pending")
-    profile_completed = Column(Boolean, default=False)
-    risk_score = Column(Integer, nullable=True)
-    risk_level = Column(String(50), nullable=True)
-    is_active = Column(Boolean, default=True)
+    kyc_status = Column(SQLEnum(KYCStatusType), default=KYCStatusType.unverified)
+    risk_profile = Column(SQLEnum(RiskProfileType), nullable=True) # Matches kyc_status enum logic
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan")
+    investments = relationship("Investment", back_populates="user", cascade="all, delete-orphan")
+    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
+
+class Goal(Base):
+    __tablename__ = "goals"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    goal_type = Column(SQLEnum(GoalType), nullable=False)
+    target_amount = Column(Numeric(15, 2), nullable=False)
+    target_date = Column(Date, nullable=False)
+    monthly_contribution = Column(Numeric(10, 2), nullable=False)
+    status = Column(SQLEnum(GoalStatus), default=GoalStatus.active)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="goals")
+
+class Investment(Base):
+    __tablename__ = "investments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    asset_type = Column(SQLEnum(AssetType), nullable=False)
+    symbol = Column(String(50), nullable=False)
+    units = Column(Numeric(15, 6), default=0)
+    avg_buy_price = Column(Numeric(10, 2), default=0)
+    cost_basis = Column(Numeric(15, 2), default=0)
+    current_value = Column(Numeric(15, 2), default=0)
+    last_price = Column(Numeric(10, 2), nullable=True)
+    last_price_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="investments")
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    symbol = Column(String(50), nullable=False)
+    type = Column(SQLEnum(TransactionType), nullable=False)
+    quantity = Column(Numeric(15, 6), nullable=False)
+    price = Column(Numeric(10, 2), nullable=False)
+    fees = Column(Numeric(10, 2), default=0)
+    executed_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="transactions")
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -69,7 +150,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=F
 class UserBase(BaseModel):
     username: str
     email: str
-    full_name: Optional[str] = None
+    name: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -85,6 +166,72 @@ class RiskQuestionResponse(BaseModel):
 
 class RiskProfileRequest(BaseModel):
     answers: Dict[int, int]  # question_id: answer
+
+class GoalBase(BaseModel):
+    goal_type: GoalType
+    target_amount: float
+    target_date: date
+    monthly_contribution: float
+    status: Optional[GoalStatus] = GoalStatus.active
+
+class GoalCreate(GoalBase):
+    pass
+
+class GoalUpdate(BaseModel):
+    goal_type: Optional[GoalType] = None
+    target_amount: Optional[float] = None
+    target_date: Optional[date] = None
+    monthly_contribution: Optional[float] = None
+    status: Optional[GoalStatus] = None
+
+class GoalResponse(GoalBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    
+    # Financial Logic fields
+    duration_months: int
+    total_invested: float
+    remaining_amount: float
+    progress_percentage: float
+
+# Portfolio Schemas
+class TransactionBase(BaseModel):
+    symbol: str
+    type: TransactionType
+    quantity: float
+    price: float
+    fees: float = 0
+
+class TransactionCreate(TransactionBase):
+    asset_type: AssetType # Needed for new investments
+
+class TransactionResponse(TransactionBase):
+    id: int
+    user_id: int
+    executed_at: datetime
+
+    class Config:
+        orm_mode = True
+
+class InvestmentResponse(BaseModel):
+    id: int
+    user_id: int
+    asset_type: AssetType
+    symbol: str
+    units: float
+    avg_buy_price: float
+    cost_basis: float
+    current_value: float
+    last_price: Optional[float]
+    last_price_at: Optional[datetime]
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+    class Config:
+        orm_mode = True
 
 # Risk questions
 RISK_QUESTIONS = [
@@ -134,13 +281,13 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def get_risk_level(score: int) -> str:
+def get_risk_level(score: int) -> RiskProfileType:
     if score <= 10:
-        return "Conservative"
+        return RiskProfileType.conservative
     elif score <= 18:
-        return "Moderate"
+        return RiskProfileType.moderate
     else:
-        return "Aggressive"
+        return RiskProfileType.aggressive
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     if not token:
@@ -173,13 +320,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 # Endpoints
 @app.post("/api/v1/auth/register")
 async def register_user(
-    username: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
-    full_name: str = Form(default=""),
+    name: str = Form(default=""),
+    username: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """Register new user"""
+    # Use email prefix as username if not provided
+    if not username:
+        username = email.split('@')[0]
+    
     print(f"Registration attempt: {username}, {email}")  # Debug log
     
     # Check if user exists
@@ -191,11 +342,10 @@ async def register_user(
     new_user = User(
         username=username,
         email=email,
-        full_name=full_name or username,
+        name=name or username,
         hashed_password=hash_password(password),
-        kyc_completed=False,
-        kyc_status="pending",
-        profile_completed=False
+        kyc_status=KYCStatusType.unverified,
+        risk_profile=None
     )
     
     try:
@@ -244,8 +394,10 @@ async def login(
         "access_token": access_token,
         "token_type": "bearer",
         "refresh_token": refresh_token,
-        "profile_completed": user.profile_completed,
+        "profile_completed": user.risk_profile is not None,
+        "kyc_status": user.kyc_status.value if hasattr(user.kyc_status, 'value') else user.kyc_status,
         "username": user.username,
+        "name": user.name,
         "email": user.email
     }
 
@@ -268,14 +420,11 @@ async def submit_risk_profile(
     risk_level = get_risk_level(total_score)
     
     # Update user
-    current_user.risk_score = total_score
-    current_user.risk_level = risk_level
-    current_user.profile_completed = True
+    current_user.risk_profile = risk_level
     db.commit()
     
     return {
-        "risk_level": risk_level,
-        "score": total_score,
+        "risk_level": risk_level.value,
         "message": "Risk profile submitted"
     }
 
@@ -287,9 +436,9 @@ async def submit_kyc(
     db: Session = Depends(get_db)
 ):
     """Submit KYC"""
-    current_user.kyc_status = "submitted"
+    current_user.kyc_status = KYCStatusType.verified
     db.commit()
-    return {"message": "KYC submitted"}
+    return {"message": "KYC submitted and verified"}
 
 @app.post("/api/v1/auth/kyc/verify")
 async def verify_kyc(
@@ -297,9 +446,7 @@ async def verify_kyc(
     db: Session = Depends(get_db)
 ):
     """Verify KYC"""
-    current_user.kyc_completed = True
-    current_user.kyc_status = "verified"
-    current_user.profile_completed = True
+    current_user.kyc_status = KYCStatusType.verified
     db.commit()
     return {"message": "KYC verified"}
 
@@ -310,11 +457,212 @@ async def get_profile_status(
 ):
     """Get profile status"""
     return {
-        "profile_completed": current_user.profile_completed,
-        "kyc_completed": current_user.kyc_completed,
-        "kyc_status": current_user.kyc_status,
-        "risk_level": current_user.risk_level,
-        "risk_score": current_user.risk_score
+        "profile_completed": current_user.risk_profile is not None,
+        "kyc_status": current_user.kyc_status.value if hasattr(current_user.kyc_status, 'value') else current_user.kyc_status,
+        "risk_profile": current_user.risk_profile.value if current_user.risk_profile else None
+    }
+
+# Goals Endpoints
+@app.post("/api/v1/goals", response_model=GoalResponse)
+async def create_goal(
+    goal: GoalCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new goal"""
+    db_goal = Goal(
+        **goal.dict(),
+        user_id=current_user.id
+    )
+    db.add(db_goal)
+    db.commit()
+    db.refresh(db_goal)
+    return calculate_goal_metrics(db_goal)
+
+@app.get("/api/v1/goals", response_model=List[GoalResponse])
+async def list_goals(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """List all goals for current user"""
+    goals = db.query(Goal).filter(Goal.user_id == current_user.id).all()
+    return [calculate_goal_metrics(g) for g in goals]
+
+@app.put("/api/v1/goals/{goal_id}", response_model=GoalResponse)
+async def update_goal(
+    goal_id: int,
+    goal_update: GoalUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update a goal"""
+    db_goal = db.query(Goal).filter(Goal.id == goal_id, Goal.user_id == current_user.id).first()
+    if not db_goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    update_data = goal_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_goal, key, value)
+    
+    db.commit()
+    db.refresh(db_goal)
+    return calculate_goal_metrics(db_goal)
+
+@app.delete("/api/v1/goals/{goal_id}")
+async def delete_goal(
+    goal_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a goal"""
+    db_goal = db.query(Goal).filter(Goal.id == goal_id, Goal.user_id == current_user.id).first()
+    if not db_goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    db.delete(db_goal)
+    db.commit()
+    return {"message": "Goal deleted successfully"}
+
+# Portfolio Endpoints
+@app.post("/api/v1/portfolio/transactions", response_model=TransactionResponse)
+async def create_transaction(
+    tx: TransactionCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Record a new transaction and update investments"""
+    # 1. Check if investment exists
+    inv = db.query(Investment).filter(
+        Investment.user_id == current_user.id,
+        Investment.symbol == tx.symbol.upper()
+    ).first()
+
+    quantity = float(tx.quantity)
+    price = float(tx.price)
+    fees = float(tx.fees)
+
+    if tx.type == TransactionType.sell:
+        if not inv or float(inv.units) < quantity:
+            raise HTTPException(status_code=400, detail="Insufficient units to sell")
+        
+        # Update investment for Sell
+        inv.units = float(inv.units) - quantity
+        # Cost basis reduction (simplified: proportional to units)
+        if float(inv.units) > 0:
+            inv.cost_basis = float(inv.units) * float(inv.avg_buy_price)
+            inv.last_price = price
+            inv.last_price_at = datetime.utcnow()
+            inv.current_value = float(inv.units) * price
+        else:
+            inv.units = 0
+            inv.cost_basis = 0
+            inv.avg_buy_price = 0
+            inv.current_value = 0
+            inv.last_price = price
+            inv.last_price_at = datetime.utcnow()
+    
+    elif tx.type == TransactionType.buy:
+        if not inv:
+            inv = Investment(
+                user_id=current_user.id,
+                symbol=tx.symbol.upper(),
+                asset_type=tx.asset_type,
+                units=0,
+                avg_buy_price=0,
+                cost_basis=0,
+                current_value=0
+            )
+            db.add(inv)
+        
+        # Update investment for Buy
+        new_units = float(inv.units) + quantity
+        new_cost_basis = float(inv.cost_basis) + (quantity * price) + fees
+        inv.units = new_units
+        inv.cost_basis = new_cost_basis
+        inv.avg_buy_price = new_cost_basis / new_units if new_units > 0 else 0
+        inv.last_price = price
+        inv.last_price_at = datetime.utcnow()
+        inv.current_value = inv.units * price
+
+    # 2. Record transaction
+    db_tx = Transaction(
+        user_id=current_user.id,
+        symbol=tx.symbol.upper(),
+        type=tx.type,
+        quantity=quantity,
+        price=price,
+        fees=fees
+    )
+    db.add(db_tx)
+    
+    try:
+        db.commit()
+        db.refresh(db_tx)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+        
+    return db_tx
+
+@app.get("/api/v1/portfolio/transactions", response_model=List[TransactionResponse])
+async def list_transactions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """List all transactions for current user"""
+    return db.query(Transaction).filter(Transaction.user_id == current_user.id).order_by(Transaction.executed_at.desc()).all()
+
+@app.get("/api/v1/portfolio/investments", response_model=List[InvestmentResponse])
+async def list_investments(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """List all units held for current user"""
+    investments = db.query(Investment).filter(Investment.user_id == current_user.id).all()
+    # Ensure numerical types are float for Pydantic
+    for inv in investments:
+        inv.units = float(inv.units)
+        inv.avg_buy_price = float(inv.avg_buy_price)
+        inv.cost_basis = float(inv.cost_basis)
+        inv.current_value = float(inv.current_value)
+        if inv.last_price: inv.last_price = float(inv.last_price)
+    return investments
+
+def calculate_goal_metrics(g: Goal) -> dict:
+    """Helper to calculate financial metrics for a goal"""
+    # Duration in months from creation to target date
+    # Handle cases where created_at might be None (newly created object before commit/refresh)
+    start_date = g.created_at.date() if g.created_at else date.today()
+    end_date = g.target_date
+    duration_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
+    if duration_months <= 0: duration_months = 1
+    
+    # Months passed since creation
+    today = date.today()
+    months_passed = (today.year - start_date.year) * 12 + (today.month - start_date.month)
+    if months_passed < 0: months_passed = 0
+    
+    total_invested = float(g.monthly_contribution) * months_passed
+    # Cap total invested at target amount
+    if total_invested > float(g.target_amount):
+        total_invested = float(g.target_amount)
+        
+    remaining_amount = float(g.target_amount) - total_invested
+    progress_percentage = (total_invested / float(g.target_amount)) * 100 if float(g.target_amount) > 0 else 0
+    
+    return {
+        "id": g.id,
+        "user_id": g.user_id,
+        "goal_type": g.goal_type,
+        "target_amount": float(g.target_amount),
+        "target_date": g.target_date,
+        "monthly_contribution": float(g.monthly_contribution),
+        "status": g.status,
+        "created_at": g.created_at,
+        "duration_months": duration_months,
+        "total_invested": round(total_invested, 2),
+        "remaining_amount": round(remaining_amount, 2),
+        "progress_percentage": round(progress_percentage, 2)
     }
 
 @app.get("/")
