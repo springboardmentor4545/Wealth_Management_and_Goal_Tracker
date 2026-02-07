@@ -37,63 +37,89 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    toast.success("Logged out successfully");
-    navigate("/login");
-  };
-
   return (
-    <div className="min-h-screen bg-[#0f172a] p-6 relative font-sans text-white">
-      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"></div>
+    <div className="min-h-screen bg-[#020617] p-6 md:p-10 relative font-sans text-white overflow-x-hidden">
+      {/* Background Ambience */}
+      <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.05)_0%,transparent_50%)]"></div>
 
-      <div className="relative max-w-3xl mx-auto space-y-6">
+      <div className="relative max-w-4xl mx-auto space-y-10 animate-in fade-in duration-700">
         <Navbar />
 
-        {/* Minimal Profile Card */}
-        <div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10 space-y-8">
-          <div className="flex items-center gap-6 pb-6 border-b border-white/10">
-            <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center text-2xl font-bold">
+        <header className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-blue-500">My Account</h2>
+            <h1 className="text-5xl font-black tracking-tight">User Profile</h1>
+            <p className="text-slate-400 font-medium">Manage your identity and account status.</p>
+          </div>
+        </header>
+
+        <main className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Identity Card */}
+          <div className="lg:col-span-2 glass-card p-10 border-white/10 bg-gradient-to-br from-white/[0.03] to-transparent flex flex-col items-center text-center space-y-8 relative overflow-hidden group">
+            <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-blue-600/5 rounded-full blur-3xl group-hover:bg-blue-600/10 transition-colors"></div>
+
+            <div className="w-32 h-32 bg-blue-600 rounded-[2.5rem] flex items-center justify-center text-5xl font-black shadow-2xl shadow-blue-600/30 transform group-hover:scale-105 transition-transform duration-500 relative z-10 border border-blue-500/20">
               {name.charAt(0).toUpperCase()}
             </div>
-            <div>
-              <h2 className="text-2xl font-bold">{name}</h2>
-              <p className="text-slate-400">{email}</p>
+
+            <div className="space-y-2 relative z-10">
+              <h2 className="text-3xl font-black tracking-tight uppercase text-white">{name}</h2>
+              <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px]">{email}</p>
+            </div>
+
+            <div className="pt-6 w-full border-t border-white/5 space-y-4 relative z-10">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <span>Joined Date</span>
+                <span className="text-slate-300">FEB 2026</span>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <h3 className="text-lg font-bold">Account Verification</h3>
+          {/* Verification Node */}
+          <div className="lg:col-span-3 space-y-8">
+            <div className="glass-card p-10 border-white/10 space-y-8 relative overflow-hidden">
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-blue-500 mb-6">Account Status</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex justify-between items-center">
-                <span className="text-slate-300 text-sm">KYC Status</span>
-                <span className={`text-xs font-bold uppercase tracking-wider ${kycStatus === "verified" ? "text-green-400" : "text-yellow-400"}`}>
-                  {kycStatus === "verified" ? "Verified" : "Pending"}
-                </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-3 hover:bg-white/[0.08] transition-colors cursor-default group">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-400">KYC Status</p>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${kycStatus === "verified" ? "bg-emerald-500" : "bg-amber-500"}`}></div>
+                    <span className={`text-sm font-black uppercase tracking-widest ${kycStatus === "verified" ? "text-emerald-500" : "text-amber-500"}`}>
+                      {kycStatus === "verified" ? "Verified" : "Pending"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-3 hover:bg-white/[0.08] transition-colors cursor-default group">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-400">Assessment</p>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${profileCompleted ? "bg-emerald-500" : "bg-blue-500"}`}></div>
+                    <span className={`text-sm font-black uppercase tracking-widest ${profileCompleted ? "text-emerald-500" : "text-blue-500"}`}>
+                      {profileCompleted ? "Completed" : "Action Required"}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex justify-between items-center">
-                <span className="text-slate-300 text-sm">Risk Assessment</span>
-                <span className={`text-xs font-bold uppercase tracking-wider ${profileCompleted ? "text-green-400" : "text-blue-400"}`}>
-                  {profileCompleted ? "Completed" : "Action Req."}
-                </span>
-              </div>
+              {kycStatus !== "verified" && (
+                <div className="p-8 bg-blue-600/5 rounded-3xl border border-blue-600/20 space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-black uppercase tracking-widest text-blue-400">Identity Needed</h4>
+                    <p className="text-slate-400 text-xs font-medium leading-relaxed">Some features are restricted. Please verify your account to gain full access.</p>
+                  </div>
+                  <button
+                    onClick={() => navigate("/kyc")}
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-[0.3em] py-4 rounded-xl transition-all shadow-xl shadow-blue-600/20 active:scale-[0.98]"
+                  >
+                    Complete KYC
+                  </button>
+                </div>
+              )}
             </div>
 
-            {kycStatus !== "verified" && (
-              <div className="p-5 bg-blue-600/10 rounded-2xl border border-blue-500/20 text-center space-y-3">
-                <p className="text-sm text-slate-300">Complete your verification to unlock trading features.</p>
-                <button
-                  onClick={() => navigate("/kyc")}
-                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-6 py-2 rounded-xl font-bold transition-all"
-                >
-                  Start KYC Now
-                </button>
-              </div>
-            )}
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

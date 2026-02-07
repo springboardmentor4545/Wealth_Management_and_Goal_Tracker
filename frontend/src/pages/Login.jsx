@@ -1,153 +1,94 @@
 import { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { useNavigate, Link } from "react-router-dom";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const validatePassword = (pass) => {
-    const minLength = pass.length >= 8;
-    const hasUpper = /[A-Z]/.test(pass);
-    const hasLower = /[a-z]/.test(pass);
-    const hasNumber = /[0-9]/.test(pass);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
-
-    if (!minLength) return "Password must be at least 8 characters long.";
-    if (!hasUpper) return "Password must contain at least one uppercase letter.";
-    if (!hasLower) return "Password must contain at least one lowercase letter.";
-    if (!hasNumber) return "Password must contain at least one number.";
-    if (!hasSpecial) return "Password must contain at least one special character.";
-
-    return null;
-  };
-
-  const submit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-
-    const error = validatePassword(password);
-    if (error) {
-      toast.error(error);
-      return;
-    }
-
-    setLoading(true);
     try {
-      const form = new URLSearchParams();
-      form.append("username", username);
-      form.append("password", password);
+      const params = new URLSearchParams();
+      params.append("username", username);
+      params.append("password", password);
 
-      const res = await axios.post(
-        "http://127.0.0.1:8000/api/v1/auth/login",
-        form,
-        {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        }
-      );
-
+      const res = await axios.post("http://127.0.0.1:8000/api/v1/auth/login", params);
       localStorage.setItem("access_token", res.data.access_token);
-      localStorage.setItem("username", res.data.username);
       localStorage.setItem("name", res.data.name);
       localStorage.setItem("email", res.data.email);
-      localStorage.setItem("profile_completed", res.data.profile_completed);
       localStorage.setItem("kyc_status", res.data.kyc_status);
+      localStorage.setItem("profile_completed", res.data.profile_completed);
 
-      toast.success("Welcome back! Login successful.");
-
-      if (!res.data.profile_completed) {
-        navigate("/riskprofile");
-      } else {
-        navigate("/dashboard");
-      }
+      toast.success(`Welcome back, ${res.data.name}`);
+      navigate("/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Invalid credentials");
-    } finally {
-      setLoading(false);
+      toast.error("Invalid credentials. Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[url('/bg.jpg')] bg-cover bg-center flex items-center justify-center p-4 relative font-sans">
-      {/* Dynamic Overlay */}
-      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"></div>
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6 relative font-sans text-white overflow-hidden">
+      {/* Background Ambience */}
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_30%,rgba(59,130,246,0.1)_0%,transparent_50%)]"></div>
+      <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_70%,rgba(139,92,246,0.1)_0%,transparent_50%)]"></div>
 
-      <div className="relative w-full max-w-md">
-        {/* Glow Effect */}
-        <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl"></div>
+      <div className="relative w-full max-w-md animate-in fade-in zoom-in duration-700">
+        <div className="glass-card p-10 border-white/10 space-y-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-50"></div>
 
-        <form
-          onSubmit={submit}
-          className="relative bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl space-y-6 overflow-hidden"
-        >
           <div className="text-center space-y-2">
-            <h1 className="text-white text-4xl font-bold tracking-tight">
-              Wealth<span className="text-blue-400">Tracker</span>
-            </h1>
-            <p className="text-slate-400 text-sm">Secure access to your assets</p>
+            <h1 className="text-4xl font-black tracking-tight">WealthTracker</h1>
+            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest italic">Sign in to your account</p>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-300 ml-1">Username</label>
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Username</label>
               <input
                 type="text"
-                className="w-full p-3 rounded-xl bg-black/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                required
+                className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all focus:bg-white/[0.08]"
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                required
               />
             </div>
 
-            <div className="space-y-1 relative">
-              <label className="text-xs font-semibold text-slate-300 ml-1">Password</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  className="w-full p-3 rounded-xl bg-black/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all pr-12"
+                  required
+                  className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all focus:bg-white/[0.08]"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
                 >
-                  {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88L4.62 4.62" /><path d="M1 1l22 22" /><path d="M9.09 9.09a3 3 0 0 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /></svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z" /><circle cx="12" cy="12" r="3" /></svg>
-                  )}
+                  {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
             </div>
-          </div>
 
-          <button
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 p-3 rounded-xl text-white font-semibold shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-          >
-            {loading ? "Authenticating..." : "Login"}
-          </button>
+            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-[1.25rem] text-sm font-black uppercase tracking-[0.2em] text-white transition-all shadow-xl shadow-blue-600/30 mt-4 active:scale-[0.98]">
+              Sign In
+            </button>
+          </form>
 
-          <div className="pt-4 border-t border-white/10 text-center">
-            <p className="text-slate-400 text-sm">
-              New to WealthTracker?{" "}
-              <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
-                Create an account
-              </Link>
-            </p>
-          </div>
-        </form>
+          <p className="text-center text-xs font-bold text-slate-500 uppercase tracking-widest">
+            Don't have an account?{" "}
+            <button onClick={() => navigate("/register")} className="text-blue-500 hover:text-blue-400 underline decoration-2 underline-offset-4 transition-colors">Register here</button>
+          </p>
+        </div>
       </div>
     </div>
   );

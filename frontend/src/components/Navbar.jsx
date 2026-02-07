@@ -1,8 +1,9 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
 export default function Navbar() {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const logout = () => {
         localStorage.clear();
@@ -10,38 +11,50 @@ export default function Navbar() {
         navigate("/login");
     };
 
+    const isActive = (path) => location.pathname === path;
+
     return (
-        <nav className="flex justify-between items-center bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/dashboard")}>
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold">W</div>
-                <span className="text-xl font-bold tracking-tight text-white">WealthTracker</span>
+        <nav className="glass-card px-8 py-4 border-white/5 flex justify-between items-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/[0.03] to-purple-600/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+
+            <div
+                className="flex items-center gap-3 cursor-pointer relative z-10"
+                onClick={() => navigate("/dashboard")}
+            >
+                <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shadow-blue-600/20 transform group-hover:scale-110 transition-transform duration-500">W</div>
+                <div className="flex flex-col">
+                    <span className="text-xl font-black tracking-tight text-white leading-none">WealthTracker</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-500 mt-1">Portfolio Manager</span>
+                </div>
             </div>
 
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => navigate("/portfolio")}
-                    className="bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl text-sm font-medium border border-white/10 transition-all text-white"
-                >
-                    Portfolio
-                </button>
-                <button
-                    onClick={() => navigate("/goals")}
-                    className="bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl text-sm font-medium border border-white/10 transition-all text-white"
-                >
-                    Goals
-                </button>
-                <button
-                    onClick={() => navigate("/profile")}
-                    className="bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl text-sm font-medium border border-white/10 transition-all text-white"
-                >
-                    Profile
-                </button>
+            <div className="flex items-center gap-2 relative z-10">
+                {[
+                    { name: 'Dashboard', path: '/dashboard' },
+                    { name: 'Portfolio', path: '/portfolio' },
+                    { name: 'Goals', path: '/goals' },
+                    { name: 'Profile', path: '/profile' }
+                ].map((item) => (
+                    <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${isActive(item.path)
+                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20'
+                                : 'bg-white/5 hover:bg-white/10 border-white/5 text-slate-400 hover:text-white'
+                            }`}
+                    >
+                        {item.name}
+                    </button>
+                ))}
+
+                <div className="w-[1px] h-6 bg-white/10 mx-2"></div>
+
                 <button
                     onClick={logout}
-                    className="text-slate-400 hover:text-red-400 p-2 transition-colors"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-rose-600/20 text-slate-500 hover:text-rose-400 transition-all border border-white/5 group/logout"
                     title="Logout"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                    <svg className="w-5 h-5 group-hover/logout:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4-4H3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </button>
             </div>
         </nav>

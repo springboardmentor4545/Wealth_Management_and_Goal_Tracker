@@ -11,6 +11,14 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 import hashlib
 import uvicorn
+from app.services.worker import update_all_investment_prices
+from app.services.market_data import fetch_latest_price, search_symbols
+import os
+import math
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # ENUM definitions for the database
 class RiskProfileType(enum.Enum):
@@ -48,7 +56,7 @@ class TransactionType(enum.Enum):
     withdrawal = "withdrawal"
 
 # Database configuration
-DATABASE_URL = "postgresql://postgres:Thaanish22*@localhost/wealth_tracker"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:Thaanish22*@localhost/wealth_tracker")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -132,16 +140,24 @@ app = FastAPI(title="Wealth Tracker API")
 # CORS middleware - IMPORTANT: Add your frontend URL
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://localhost:5174", 
+        "http://localhost:5175",
+        "http://localhost:5176",
+        "http://localhost:3000", 
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configuration - CHANGE THIS IN PRODUCTION!
-SECRET_KEY = "your-secret-key-change-this-in-production"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Configuration
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
@@ -294,6 +310,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
+        # Debug: Print first 5 chars of secret key to verify it matches
+        print(f"DEBUG: Using SECRET_KEY starting with: {SECRET_KEY[:5]}...")
         payload = jwt.decode(
             token,
             SECRET_KEY,
@@ -305,9 +323,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         )
         username = payload.get("sub")
         if username is None:
+            print("DEBUG: No 'sub' in token payload")
             raise HTTPException(status_code=401, detail="Invalid token")
     except JWTError as e:
-        print("JWT ERROR:", e)
+        print(f"DEBUG: JWT ERROR: {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
 
     user = db.query(User).filter(User.username == username).first()
@@ -331,6 +350,20 @@ async def register_user(
     if not username:
         username = email.split('@')[0]
     
+    # Password Complexity Validation
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long")
+    
+    import re
+    if not (re.search(r"[A-Z]", password) and 
+            re.search(r"[a-z]", password) and 
+            re.search(r"\d", password) and 
+            re.search(r"[!@#$%^&*(),.?\":{}|<>]", password)):
+        raise HTTPException(
+            status_code=400, 
+            detail="Password must contain at least one uppercase letter, one lowercase letter, one number, and one symbol"
+        )
+
     print(f"Registration attempt: {username}, {email}")  # Debug log
     
     # Check if user exists
@@ -375,8 +408,10 @@ async def login(
     """Login user"""
     print(f"Login attempt: {username}")  # Debug log
     
-    user = db.query(User).filter(User.username == username).first()
+    # Allow login with either username or email
+    user = db.query(User).filter((User.username == username) | (User.email == username)).first()
     if not user:
+        print(f"Login failed: User {username} not found")
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     if not verify_password(password, user.hashed_password):
@@ -547,20 +582,21 @@ async def create_transaction(
         
         # Update investment for Sell
         inv.units = float(inv.units) - quantity
-        # Cost basis reduction (simplified: proportional to units)
-        if float(inv.units) > 0:
-            inv.cost_basis = float(inv.units) * float(inv.avg_buy_price)
-            inv.last_price = price
-            inv.last_price_at = datetime.utcnow()
-            inv.current_value = float(inv.units) * price
-        else:
+        
+        # Floating point safety check (epsilon)
+        if inv.units < 1e-8:
             inv.units = 0
             inv.cost_basis = 0
             inv.avg_buy_price = 0
             inv.current_value = 0
             inv.last_price = price
             inv.last_price_at = datetime.utcnow()
-    
+        else:
+            # Cost basis reduction (simplified: proportional to units)
+            inv.cost_basis = float(inv.units) * float(inv.avg_buy_price)
+            # We don't update last_price on sell here anymore, 
+            # as the block below handles live fetch or fallback
+        
     elif tx.type == TransactionType.buy:
         if not inv:
             inv = Investment(
@@ -580,9 +616,8 @@ async def create_transaction(
         inv.units = new_units
         inv.cost_basis = new_cost_basis
         inv.avg_buy_price = new_cost_basis / new_units if new_units > 0 else 0
-        inv.last_price = price
-        inv.last_price_at = datetime.utcnow()
-        inv.current_value = inv.units * price
+        # We don't update last_price here anymore, 
+        # as the block below handles live fetch or fallback
 
     # 2. Record transaction
     db_tx = Transaction(
@@ -594,8 +629,28 @@ async def create_transaction(
         fees=fees
     )
     db.add(db_tx)
+
+    # 3. Update investment with LIVE price if available
+    # Only if units > 0
+    if inv.units > 0:
+        live_p, live_t = fetch_latest_price(tx.symbol.upper())
+        if live_p is not None:
+            inv.last_price = live_p
+            inv.last_price_at = live_t
+            inv.current_value = float(inv.units) * live_p
+        else:
+            # Fallback to transaction price if live fetch fails
+            inv.last_price = price
+            inv.last_price_at = datetime.utcnow()
+            inv.current_value = float(inv.units) * price
     
     try:
+        # Sanitize NaN values before committing or returning
+        if inv.last_price is not None and math.isnan(float(inv.last_price)):
+            inv.last_price = None
+        if inv.current_value is not None and math.isnan(float(inv.current_value)):
+            inv.current_value = 0
+            
         db.commit()
         db.refresh(db_tx)
     except Exception as e:
@@ -619,14 +674,33 @@ async def list_investments(
 ):
     """List all units held for current user"""
     investments = db.query(Investment).filter(Investment.user_id == current_user.id).all()
-    # Ensure numerical types are float for Pydantic
+    # Ensure numerical types are float for Pydantic and handle NaN
     for inv in investments:
         inv.units = float(inv.units)
         inv.avg_buy_price = float(inv.avg_buy_price)
         inv.cost_basis = float(inv.cost_basis)
         inv.current_value = float(inv.current_value)
-        if inv.last_price: inv.last_price = float(inv.last_price)
+        if inv.last_price is not None: 
+            inv.last_price = float(inv.last_price)
+            if math.isnan(inv.last_price):
+                inv.last_price = None
+        
+        # Final safety check for current_value
+        if math.isnan(inv.current_value):
+            inv.current_value = 0.0
+            
     return investments
+
+@app.post("/api/v1/portfolio/update-prices")
+async def trigger_price_update(current_user: User = Depends(get_current_user)):
+    """Manual trigger for price updates"""
+    task = update_all_investment_prices.delay()
+    return {"message": "Price update task triggered", "task_id": task.id}
+
+@app.get("/api/v1/portfolio/search")
+async def search_stock_symbols(q: str, current_user: User = Depends(get_current_user)):
+    """Search for stock symbols"""
+    return search_symbols(q)
 
 def calculate_goal_metrics(g: Goal) -> dict:
     """Helper to calculate financial metrics for a goal"""
