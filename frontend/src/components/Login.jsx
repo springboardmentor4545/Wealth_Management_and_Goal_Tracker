@@ -1,44 +1,47 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../api/auth";
+import { toast } from "react-toastify";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await loginUser({ email, password });
-    if (res) {
-      setSuccess("✅ Login successful");
-      setTimeout(() => {
-        navigate("/home");
-      }, 1000);
+
+    try {
+      const res = await loginUser({ email, password });
+
+      if (res) {
+        toast.success("Login successful 🎉");
+        setTimeout(() => {
+          navigate("/home");
+        }, 1000);
+      }
+    } catch (error) {
+      toast.error("Invalid email or password ❌");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <h2 className="text-3xl font-bold text-center mb-6">
-          Welcome Back 👋
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="backdrop-blur-md bg-white/80 rounded-3xl shadow-2xl p-10 w-full max-w-md">
+        <h2 className="text-4xl font-heading font-bold text-center mb-2 text-orange-800">
+          WealthIQ
         </h2>
+        <p className="text-center text-gray-600 mb-8">
+          Smart wealth. Smarter decisions.
+        </p>
 
-        {success && (
-          <p className="text-green-600 text-center mb-4 font-semibold">
-            {success}
-          </p>
-        )}
-
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-5" onSubmit={handleSubmit}>
           <input
             type="email"
-            placeholder="Email"
-            className="w-full px-4 py-2 border rounded-lg
-                       focus:outline-none focus:ring-2 focus:ring-purple-500"
+            placeholder="Email address"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl
+                       focus:outline-none focus:ring-2 focus:ring-orange-400"
             onChange={(e) => setEmail(e.target.value)}
             required
           />
@@ -48,15 +51,15 @@ export default function Login() {
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Password"
-              className="w-full px-4 py-2 border rounded-lg
-                         focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl
+                         focus:outline-none focus:ring-2 focus:ring-orange-400"
               onChange={(e) => setPassword(e.target.value)}
               required
             />
 
             <span
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-2.5 cursor-pointer text-gray-600"
+              className="absolute right-4 top-3.5 cursor-pointer text-gray-600 select-none"
             >
               {showPassword ? "🙈" : "👁️"}
             </span>
@@ -64,17 +67,20 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full py-2 bg-purple-600 hover:bg-purple-700
-                       text-white rounded-lg font-semibold transition"
+            className="w-full py-3 bg-orange-600 hover:bg-orange-700
+                       text-white rounded-full font-semibold transition duration-200"
           >
             Login
           </button>
         </form>
 
-        <p className="text-center text-sm mt-6">
-          New user?{" "}
-          <Link to="/signup" className="text-purple-600 font-semibold">
-            Signup
+        <p className="text-center text-sm mt-6 text-gray-700">
+          New to WealthIQ?{" "}
+          <Link
+            to="/signup"
+            className="text-orange-700 font-semibold hover:underline"
+          >
+            Create an account
           </Link>
         </p>
       </div>

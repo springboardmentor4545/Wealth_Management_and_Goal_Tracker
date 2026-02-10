@@ -1,17 +1,21 @@
 import axios from "axios";
+import { toast } from "react-toastify";
 
-const API_URL = "http://127.0.0.1:8000/auth"; 
+const API_URL = "http://127.0.0.1:8000/auth";
 
+// ================= SIGN UP =================
 export const signupUser = async (data) => {
   try {
     const res = await axios.post(`${API_URL}/signup`, data);
-    return res.data; 
+    toast.success("Signup successful");
+    return res.data;
   } catch (err) {
-    alert(err.response?.data?.detail || "Signup failed");
+    toast.error(err.response?.data?.detail || "Signup failed");
     return null;
   }
 };
 
+// ================= LOGIN =================
 export const loginUser = async (data) => {
   try {
     const formData = new URLSearchParams();
@@ -20,41 +24,40 @@ export const loginUser = async (data) => {
 
     const res = await axios.post(`${API_URL}/login`, formData, {
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      }
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
     });
-    
-    // Store the token in localStorage
-    if (res.data.access_token) {
+
+    if (res.data?.access_token) {
       localStorage.setItem("access_token", res.data.access_token);
       localStorage.setItem("token_type", res.data.token_type);
+      toast.success("Login successful");
     }
-    
-    return res.data; 
+
+    return res.data;
   } catch (err) {
-    alert(err.response?.data?.detail || "Login failed");
+    toast.error(err.response?.data?.detail || "Login failed");
     return null;
   }
 };
 
-// Logout function
+// ================= LOGOUT =================
 export const logoutUser = () => {
   localStorage.removeItem("access_token");
   localStorage.removeItem("token_type");
+  toast.info("Logged out");
 };
 
-// Get current token
+// ================= TOKEN =================
 export const getToken = () => {
   return localStorage.getItem("access_token");
 };
 
-// Get current user profile
+// ================= CURRENT USER =================
 export const getCurrentUser = async () => {
   try {
     const token = getToken();
-    if (!token) {
-      throw new Error("No token found");
-    }
+    if (!token) return null;
 
     const res = await axios.get(`${API_URL}/me`, {
       headers: {
@@ -64,12 +67,12 @@ export const getCurrentUser = async () => {
 
     return res.data;
   } catch (err) {
-    console.error("Failed to fetch user:", err);
-    throw err;
+    toast.error("Failed to get current user");
+    return null;
   }
 };
 
-// Check if user is authenticated
+// ================= AUTH CHECK =================
 export const isAuthenticated = () => {
   return !!getToken();
 };

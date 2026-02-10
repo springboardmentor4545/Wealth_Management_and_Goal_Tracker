@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from datetime import datetime, date
 from enum import Enum
 
@@ -51,22 +51,18 @@ class TransactionType(str, Enum):
 class UserBase(BaseModel):
     name: str
     email: EmailStr
-    risk_profile: RiskProfile
-    kyc_status: KYCStatus
+    risk_profile: Optional[RiskProfile] = RiskProfile.moderate
+    kyc_status: Optional[KYCStatus] = KYCStatus.unverified
 
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8, max_length=16, description="Password must be 8-16 characters")
-    risk_profile: RiskProfile = Field(default=RiskProfile.moderate)
-    kyc_status: KYCStatus = Field(default=KYCStatus.unverified)
-    
-    @field_validator('password')
+    password: str = Field(..., min_length=8, max_length=16)
+
+    @field_validator("password")
     @classmethod
     def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters')
-        if len(v) > 16:
-            raise ValueError('Password must not exceed 16 characters')
+        if len(v) < 8 or len(v) > 16:
+            raise ValueError("Password must be 8–16 characters")
         return v
 
 
@@ -83,6 +79,19 @@ class TokenResponse(BaseModel):
     token_type: str
 
 
+# ================== RISK ASSESSMENT ==================
+
+class RiskAnswer(BaseModel):
+    questionId: int
+    score: int
+
+
+class RiskAssessmentSubmit(BaseModel):
+    answers: List[RiskAnswer]
+    user_id: int
+    kyc_status: str
+
+
 # ================== GOALS ==================
 
 class GoalBase(BaseModel):
@@ -94,13 +103,19 @@ class GoalBase(BaseModel):
 
 
 class GoalCreate(GoalBase):
-    user_id: int
+    user_id: Optional[int] = None
 
 
 class GoalResponse(GoalBase):
-    id: int
+    goal_id: int
     user_id: int
     created_at: datetime
+
+    # calculated fields
+    duration_months: int
+    required_monthly_investment: float
+    total_invested: float
+    completion_percentage: float
 
     class Config:
         from_attributes = True
@@ -114,8 +129,8 @@ class InvestmentBase(BaseModel):
     units: float
     avg_buy_price: float
     cost_basis: float
-    current_value: float
-    last_price: float
+    current_value: Optional[float] = None
+    last_price: Optional[float] = None
 
 
 class InvestmentCreate(InvestmentBase):
@@ -125,7 +140,7 @@ class InvestmentCreate(InvestmentBase):
 class InvestmentResponse(InvestmentBase):
     id: int
     user_id: int
-    last_price_at: datetime
+    last_price_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -138,7 +153,7 @@ class TransactionBase(BaseModel):
     type: TransactionType
     quantity: float
     price: float
-    fees: float
+    fees: float = 0
 
 
 class TransactionCreate(TransactionBase):

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 from database import get_db_connection
+from schema import RiskAssessmentSubmit
 
 # ✅ ROUTER MUST BE DEFINED FIRST
 router = APIRouter(
@@ -56,24 +56,20 @@ def get_risk_questions():
 
 
 # =========================
-# SUBMIT RISK SCORE
+# SUBMIT RISK ASSESSMENT
 # =========================
-class RiskSubmit(BaseModel):
-    user_id: int
-    risk_score: int
-
-
-@router.post("/submit")
-def submit_risk_score(data: RiskSubmit):
+@router.post("/assessment")
+def submit_risk_assessment(data: RiskAssessmentSubmit):
     try:
-        score = data.risk_score
+        # Calculate total score from answers
+        total_score = sum(answer.score for answer in data.answers)
 
         # ✅ SCORING LOGIC
-        if 0 <= score <= 10:
+        if 0 <= total_score <= 10:
             profile = "conservative"
-        elif 11 <= score <= 18:
+        elif 11 <= total_score <= 18:
             profile = "moderate"
-        elif score >= 19:
+        elif total_score >= 19:
             profile = "aggressive"
         else:
             raise HTTPException(status_code=400, detail="Invalid risk score")
@@ -86,9 +82,10 @@ def submit_risk_score(data: RiskSubmit):
             SET 
                 risk_score = %s,
                 risk_profile = %s,
-                profile_completed = TRUE
+                profile_completed = TRUE,
+                kyc_status = %s
             WHERE id = %s
-        """, (score, profile, data.user_id))
+        """, (total_score, profile, data.kyc_status, data.user_id))
 
         conn.commit()
         cur.close()
@@ -96,8 +93,9 @@ def submit_risk_score(data: RiskSubmit):
 
         return {
             "message": "Risk profiling completed",
-            "risk_score": score,
-            "risk_profile": profile
+            "risk_score": total_score,
+            "risk_profile": profile,
+            "kyc_status": data.kyc_status
         }
 
     except Exception as e:

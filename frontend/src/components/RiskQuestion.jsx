@@ -9,7 +9,7 @@ function RiskQuestion({ question, options, onAnswer }) {
   };
 
   return (
-    <div className="bg-white p-4 mb-4 rounded-lg shadow">
+    <div>
       <h3 className="text-lg font-semibold mb-3">{question}</h3>
 
       <div className="space-y-2">
@@ -20,7 +20,7 @@ function RiskQuestion({ question, options, onAnswer }) {
             <button
               key={index}
               onClick={() => handleSelect(opt.score, index)}
-              className={`w-full text-left px-4 py-2 rounded border transition
+              className={`w-full text-left px-4 py-3 rounded border transition
                 ${
                   isSelected
                     ? "bg-purple-600 text-white border-purple-600"
@@ -28,7 +28,7 @@ function RiskQuestion({ question, options, onAnswer }) {
                 }
               `}
             >
-              {opt.label}
+              {opt.text}
             </button>
           );
         })}
