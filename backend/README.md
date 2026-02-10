@@ -29,6 +29,46 @@ createdb mydatabase
 uvicorn app.main:app --reload --port 8000
 ```
 
+## Milestone 3: Market Sync & Simulations (Weeks 5-6)
+
+New Features:
+- **Live Market Data**: Prices updated via Yahoo Finance (`yfinance`).
+- **Portfolio Valuation**: Real-time value and P&L calculations.
+- **Background Jobs**: Automated nightly price updates using Celery + Redis.
+- **Financial Simulations**: "What-If" projections for future wealth with charts.
+
+### Setup Milestone 3
+1. **Migrations**: Ensure new columns and tables are created.
+   ```bash
+   $env:PYTHONPATH="."
+   .\venv\Scripts\python -m app.db_migrate
+   ```
+
+2. **Run Redis**: (Required for background jobs)
+   - Ensure Redis is running on `localhost:6379`.
+   - On Windows, you can use WSL `sudo service redis-server start` or a Windows port of Redis.
+
+3. **Run Celery Worker**: (In a new terminal)
+   ```bash
+   $env:PYTHONPATH="."
+   .\venv\Scripts\python -m celery -A app.celery_app.celery_app worker --loglevel=info -P solo
+   ```
+   *(Note: `-P solo` is required for Celery on Windows)*
+
+4. **Run Celery Beat**: (For Scheduled Jobs - optional for dev)
+   ```bash
+   $env:PYTHONPATH="."
+   .\venv\Scripts\python -m celery -A app.celery_app.celery_app beat --loglevel=info
+   ```
+
+### New Endpoints:
+- `GET /portfolio/holdings` — Returns holdings with `last_price` and `current_value`.
+- `GET /simulations/` — List all user simulations.
+- `POST /simulations/` — Create a new future value projection.
+- `DELETE /simulations/{id}` — Remove a simulation scenario.
+
+---
+
 Endpoints:
 - `POST /auth/register` — register a user (JSON `email`, `password`, optional risk fields)
 - `POST /auth/login` — login and receive `access_token` and `refresh_token`
@@ -101,4 +141,3 @@ JWT_SECRET=replace-with-secret
 ```
 
 5. Start the app and test endpoints (see curl/Postman examples above).
-

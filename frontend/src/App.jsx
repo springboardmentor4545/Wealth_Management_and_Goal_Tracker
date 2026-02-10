@@ -5,6 +5,7 @@ import Profile from './pages/Profile'
 import RiskProfile from './pages/RiskProfile'
 import Goals from './pages/Goals'
 import Portfolio from './pages/Portfolio'
+import Simulations from './pages/Simulations'
 import api from './lib/api'
 
 export default function App(){
@@ -21,10 +22,11 @@ export default function App(){
     <div className="min-h-screen bg-gray-100 font-sans text-gray-900">
         {view==='register' && <Register onRegistered={(u)=>{ setView('login') }} onLoginClick={()=>setView('login')} />}
         {view==='login' && <Login onLoggedIn={(tok)=>{ setToken(tok); setView('profile') }} onRegisterClick={()=>setView('register')} />}
-        {view==='profile' && <Profile token={token} onLogout={()=>{ setToken(null); setView('login') }} onRiskClick={()=>setView('risk')} onGoalsClick={()=>setView('goals')} onPortfolioClick={()=>setView('portfolio')} />}
+        {view==='profile' && <Profile token={token} onLogout={()=>{ setToken(null); setView('login') }} onRiskClick={()=>setView('risk')} onGoalsClick={()=>setView('goals')} onPortfolioClick={()=>setView('portfolio')} onSimulationsClick={()=>setView('simulations')} />}
         {view==='risk' && <RiskProfile token={token} onBack={()=>setView('profile')} />}
         {view==='goals' && <Goals token={token} onBack={()=>setView('profile')} />}
         {view==='portfolio' && <Portfolio token={token} onBack={()=>setView('profile')} />}
+        {view==='simulations' && <Simulations token={token} onBack={()=>setView('profile')} />}
     </div>
   )
 }

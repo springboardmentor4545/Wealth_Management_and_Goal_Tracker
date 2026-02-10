@@ -98,9 +98,30 @@ export function createTransaction(data, token) {
     })
 }
 
+// --- SIMULATIONS API ---
+export function getSimulations(token) {
+    return request('/simulations/', { headers: { 'Authorization': `Bearer ${token}` } })
+}
+
+export function createSimulation(data, token) {
+    return request('/simulations/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(data)
+    })
+}
+
+export function deleteSimulation(id, token) {
+    return request(`/simulations/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    })
+}
+
 export default { 
     register, login, refresh, me, 
     getRiskQuestions, submitRisk, setKyc, 
     getGoals, createGoal, deleteGoal,
-    getHoldings, getTransactions, createTransaction 
+    getHoldings, getTransactions, createTransaction,
+    getSimulations, createSimulation, deleteSimulation
 }

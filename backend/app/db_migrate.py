@@ -39,6 +39,11 @@ queries = [
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
     """,
+    # Update Investments table
+    "ALTER TABLE investments ADD COLUMN IF NOT EXISTS last_price FLOAT DEFAULT 0;",
+    "ALTER TABLE investments ADD COLUMN IF NOT EXISTS last_price_updated_at TIMESTAMP WITH TIME ZONE;",
+    "ALTER TABLE investments ADD COLUMN IF NOT EXISTS current_value FLOAT DEFAULT 0;",
+
     # Create Transactions Table
     """
     CREATE TABLE IF NOT EXISTS transactions (
@@ -50,6 +55,17 @@ queries = [
         price_per_unit FLOAT NOT NULL,
         total_amount FLOAT NOT NULL,
         date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    """,
+    # Create Simulations Table
+    """
+    CREATE TABLE IF NOT EXISTS simulations (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        title VARCHAR NOT NULL,
+        assumptions TEXT NOT NULL,
+        results TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
     """
 ]

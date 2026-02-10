@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
@@ -9,14 +9,13 @@ load_dotenv()
 
 from . import models, schemas, database, crud, auth
 from . import risk_questions
-from .routers import goals, portfolio # Import portfolio router
-from fastapi import Body
+from .routers import goals, portfolio, simulations # Import routers
 
 app = FastAPI()
 
 app.include_router(goals.router)
-app.include_router(goals.router)
-app.include_router(portfolio.router) # Include portfolio router
+app.include_router(portfolio.router)
+app.include_router(simulations.router) # Include simulations router
 
 # Force server reload for portfolio update 2
 

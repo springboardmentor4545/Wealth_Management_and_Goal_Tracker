@@ -44,7 +44,12 @@ class Investment(Base):
     asset_type = Column(String, default="Stock") # Stock, Crypto, Bond
     quantity = Column(Float, default=0.0)
     average_buy_price = Column(Float, default=0.0)
-    # current_price = Column(Float) # In a real app, this would come from a live API
+    
+    # New fields for Market Data
+    last_price = Column(Float, default=0.0)
+    last_price_updated_at = Column(DateTime(timezone=True), nullable=True)
+    current_value = Column(Float, default=0.0)
+    
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
@@ -59,4 +64,15 @@ class Transaction(Base):
     price_per_unit = Column(Float, nullable=False)
     total_amount = Column(Float, nullable=False)
     date = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Simulation(Base):
+    __tablename__ = "simulations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    title = Column(String, nullable=False)
+    assumptions = Column(Text, nullable=False) # Store as JSON string
+    results = Column(Text, nullable=False)     # Store as JSON string
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 

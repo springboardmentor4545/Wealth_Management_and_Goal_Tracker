@@ -12,13 +12,14 @@ router = APIRouter(
 def get_holdings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     investments = db.query(models.Investment).filter(models.Investment.user_id == current_user.id).all()
     
-    # Calculate current value (Static for now, can be connected to real API later)
-    # logic: current_value = quantity * (average_buy_price * random_variation_factor)
-    # For now, let's just assume current price = average buy price for simplicity unless we attach a mock market price
-    for inv in investments:
-        # We attach the 'current_value' to the object for the schema to pick up
-        # Value = Quantity * Price
-        inv.current_value = inv.quantity * inv.average_buy_price 
+    # Trigger a background update for this user's prices
+    # This ensures next time they refresh, it's very fresh, without slowing down THIS request.
+    from ..celery_app import update_user_prices_async
+    try:
+        update_user_prices_async.delay(current_user.id)
+    except Exception:
+        # If celery/redis is not running, just skip background update
+        pass
 
     return investments
 
@@ -52,13 +53,19 @@ def create_transaction(tx: schemas.TransactionCreate, db: Session = Depends(data
 
     if tx.transaction_type.upper() == "BUY":
         if not investment:
+            # Fetch current market price for metadata
+            from ..market_data import fetch_current_price
+            mkt_price = fetch_current_price(tx.symbol.upper()) or tx.price_per_unit
+            
             # Create new investment holding
             investment = models.Investment(
                 user_id=current_user.id,
                 symbol=tx.symbol.upper(),
                 asset_type=tx.asset_type,
                 quantity=tx.quantity,
-                average_buy_price=tx.price_per_unit
+                average_buy_price=tx.price_per_unit,
+                last_price=mkt_price,
+                current_value=tx.quantity * mkt_price
             )
             db.add(investment)
         else:
@@ -72,6 +79,7 @@ def create_transaction(tx: schemas.TransactionCreate, db: Session = Depends(data
             
             investment.quantity = new_qty
             investment.average_buy_price = new_avg_cost
+            investment.current_value = investment.quantity * (investment.last_price or investment.average_buy_price)
 
     elif tx.transaction_type.upper() == "SELL":
         if not investment or investment.quantity < tx.quantity:
@@ -79,8 +87,10 @@ def create_transaction(tx: schemas.TransactionCreate, db: Session = Depends(data
         
         # Determine profit/loss logic here if needed, but for now just reduce quantity
         investment.quantity -= tx.quantity
+        investment.current_value = investment.quantity * (investment.last_price or investment.average_buy_price)
+        
         if investment.quantity == 0:
-            db.delete(investment) # Remove holding if sold out? Or keep with 0? Let's keep with 0 usually, but deleting is cleaner for the list.
+            db.delete(investment) 
             # actually better to keep it with 0 to track history, but users prefer clean lists.
             # Let's check quantity
     

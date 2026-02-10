@@ -27,7 +27,7 @@ class UserOut(UserBase):
     allocation: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserLogin(BaseModel):
@@ -77,8 +77,7 @@ class GoalOut(GoalBase):
     progress_percentage: Optional[float] = 0.0
 
     class Config:
-        from_attributes = True # updated for Pydantic v2 support if needed, or stick to orm_mode for v1 compatibility
-        orm_mode = True 
+        from_attributes = True
 
 
 # --- PORTFOLIO SCHEMAS ---
@@ -100,15 +99,36 @@ class TransactionOut(TransactionBase):
     date: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class InvestmentOut(BaseModel):
     symbol: str
     asset_type: str
     quantity: float
     average_buy_price: float
-    current_value: Optional[float] = 0.0 # Calculated field
+    last_price: Optional[float] = 0.0
+    last_price_updated_at: Optional[datetime] = None
+    current_value: Optional[float] = 0.0
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+
+# --- SIMULATION SCHEMAS ---
+
+class SimulationBase(BaseModel):
+    title: str
+    assumptions: dict # JSON as dict
+    
+class SimulationCreate(SimulationBase):
+    pass
+
+class SimulationOut(SimulationBase):
+    id: int
+    user_id: int
+    results: dict # JSON as dict
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 

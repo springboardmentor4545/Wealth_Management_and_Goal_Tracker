@@ -135,18 +135,38 @@ export default function Portfolio({ token, onBack }) {
                                             <th className="px-6 py-3">Asset</th>
                                             <th className="px-6 py-3 text-right">Units</th>
                                             <th className="px-6 py-3 text-right">Avg Price</th>
-                                            <th className="px-6 py-3 text-right">Total Value</th>
+                                            <th className="px-6 py-3 text-right">Market Price</th>
+                                            <th className="px-6 py-3 text-right">Market Value</th>
+                                            <th className="px-6 py-3 text-right">P&L</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {holdings.map((h, i) => (
-                                            <tr key={i} className="hover:bg-gray-50">
-                                                <td className="px-6 py-3 font-medium text-gray-900">{h.symbol}</td>
-                                                <td className="px-6 py-3 text-right">{h.quantity}</td>
-                                                <td className="px-6 py-3 text-right text-gray-500">${h.average_buy_price.toFixed(2)}</td>
-                                                <td className="px-6 py-3 text-right font-bold text-gray-800">${(h.quantity * h.average_buy_price).toFixed(2)}</td>
-                                            </tr>
-                                        ))}
+                                        {holdings.map((h, i) => {
+                                            const mktPrice = h.last_price || h.average_buy_price;
+                                            const mktValue = h.quantity * mktPrice;
+                                            const costBasis = h.quantity * h.average_buy_price;
+                                            const pnl = mktValue - costBasis;
+                                            const pnlPct = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
+
+                                            return (
+                                                <tr key={i} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-3 font-medium text-gray-900">
+                                                        {h.symbol}
+                                                        <div className="text-[10px] text-gray-400 font-normal">
+                                                            {h.last_price_updated_at ? `Updated: ${new Date(h.last_price_updated_at).toLocaleTimeString()}` : 'Price Pending...'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-3 text-right">{h.quantity}</td>
+                                                    <td className="px-6 py-3 text-right text-gray-500">${h.average_buy_price.toFixed(2)}</td>
+                                                    <td className="px-6 py-3 text-right text-indigo-600 font-medium">${mktPrice.toFixed(2)}</td>
+                                                    <td className="px-6 py-3 text-right font-bold text-gray-800">${mktValue.toFixed(2)}</td>
+                                                    <td className={`px-6 py-3 text-right font-medium ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                        {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}
+                                                        <span className="text-xs ml-1">({pnlPct.toFixed(1)}%)</span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             )}
