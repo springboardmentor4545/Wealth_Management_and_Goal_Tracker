@@ -106,6 +106,7 @@ class Investment(Base):
     current_value = Column(Numeric(15, 2), default=0)
     last_price = Column(Numeric(10, 2), nullable=True)
     last_price_at = Column(DateTime, nullable=True)
+    daily_change_pct = Column(Numeric(10, 4), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="investments")
@@ -241,6 +242,7 @@ class InvestmentResponse(BaseModel):
     current_value: float
     last_price: Optional[float]
     last_price_at: Optional[datetime]
+    daily_change_pct: Optional[float]
     created_at: datetime
 
     class Config:

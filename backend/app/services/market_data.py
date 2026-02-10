@@ -32,38 +32,50 @@ def fetch_latest_price(symbol: str):
 def fetch_prices_batch(symbols: list):
     """
     Fetch prices for multiple symbols.
-    Returns a dictionary of {symbol: (price, timestamp)}
+    Returns a dictionary of {symbol: (price, timestamp, daily_change_pct)}
     """
     results = {}
     if not symbols:
         return results
         
     try:
-        # yfinance download is faster for many symbols
-        data = yf.download(symbols, period="1d", group_by='ticker', threads=True, progress=False)
+        # Fetch 2 days of history to calculate daily change
+        data = yf.download(symbols, period="2d", group_by='ticker', threads=True, progress=False)
         timestamp = datetime.utcnow()
         
         for symbol in symbols:
             try:
                 if len(symbols) == 1:
-                    price = float(data['Close'].iloc[-1])
+                    df = data
                 else:
-                    price = float(data[symbol]['Close'].iloc[-1])
+                    df = data[symbol]
                 
-                if price is not None and not math.isnan(price):
-                    results[symbol] = (price, timestamp)
-            except Exception:
-                # Fallback to single fetch if batch fails for a symbol
+                if not df.empty and len(df) >= 1:
+                    last_price = float(df['Close'].iloc[-1])
+                    daily_change = 0.0
+                    
+                    if len(df) >= 2:
+                        prev_close = float(df['Close'].iloc[-2])
+                        if prev_close > 0:
+                            daily_change = ((last_price - prev_close) / prev_close) * 100
+                    
+                    if not math.isnan(last_price):
+                        results[symbol] = (last_price, timestamp, daily_change)
+            except Exception as e:
+                logger.error(f"Error processing {symbol} in batch: {e}")
+                # Fallback to single fetch
                 p, t = fetch_latest_price(symbol)
                 if p:
-                    results[symbol] = (p, t)
+                    # Single fetch doesn't easily give daily change without another call, 
+                    # but we'll stick to 0 for now as fallback
+                    results[symbol] = (p, t, 0.0)
     except Exception as e:
         logger.error(f"Batch fetch error: {e}")
         # Final fallback
         for symbol in symbols:
             p, t = fetch_latest_price(symbol)
             if p:
-                results[symbol] = (p, t)
+                results[symbol] = (p, t, 0.0)
                 
     return results
 

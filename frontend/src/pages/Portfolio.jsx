@@ -283,8 +283,8 @@ export default function Portfolio() {
                                                     </td>
                                                     <td className="px-8 py-6">
                                                         <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg border ${tx.type === 'buy'
-                                                                ? 'bg-blue-600/10 border-blue-600/20 text-blue-400'
-                                                                : 'bg-rose-600/10 border-rose-600/20 text-rose-400'
+                                                            ? 'bg-blue-600/10 border-blue-600/20 text-blue-400'
+                                                            : 'bg-rose-600/10 border-rose-600/20 text-rose-400'
                                                             }`}>
                                                             {tx.type === 'buy' ? 'Buy' : 'Sell'}
                                                         </span>
@@ -381,8 +381,8 @@ export default function Portfolio() {
                                             type="button"
                                             onClick={() => setNewTx({ ...newTx, asset_type: type })}
                                             className={`py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${newTx.asset_type === type
-                                                    ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/30'
-                                                    : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'
+                                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/30'
+                                                : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'
                                                 }`}
                                         >
                                             {type}

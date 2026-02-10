@@ -32,8 +32,8 @@ celery_app.conf.update(
     task_serializer='json',
     accept_content=['json'],
     result_serializer='json',
-    timezone='UTC',
-    enable_utc=True,
+    timezone='Asia/Kolkata',
+    enable_utc=False,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,10 +73,11 @@ def update_all_investment_prices():
         updates_count = 0
         for inv in investments:
             if inv.symbol in price_data:
-                price, timestamp = price_data[inv.symbol]
+                price, timestamp, change = price_data[inv.symbol]
                 if price is not None:
                     inv.last_price = price
                     inv.last_price_at = timestamp
+                    inv.daily_change_pct = change
                     inv.current_value = float(inv.units) * price
                     updates_count += 1
         
@@ -91,10 +92,10 @@ def update_all_investment_prices():
     finally:
         db.close()
 
-# Schedule nightly job (3 AM UTC)
+# Schedule price updates every 12 hours (4 AM and 4 PM IST)
 celery_app.conf.beat_schedule = {
-    'nightly-price-update': {
+    'scheduled-price-update': {
         'task': 'update_all_investment_prices',
-        'schedule': crontab(hour=3, minute=0),
+        'schedule': crontab(hour='4,16', minute=0),
     },
 }
