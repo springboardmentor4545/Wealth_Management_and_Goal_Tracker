@@ -68,11 +68,11 @@ class User(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(100), unique=True, index=True)
-    email = Column(String(120), unique=True, index=True)
-    name = Column(String(100))
     hashed_password = Column(String(255))
+    name = Column(String(100))
+    email = Column(String(120), unique=True, index=True)
+    risk_profile = Column(SQLEnum(RiskProfileType), nullable=True)
     kyc_status = Column(SQLEnum(KYCStatusType), default=KYCStatusType.unverified)
-    risk_profile = Column(SQLEnum(RiskProfileType), nullable=True) # Matches kyc_status enum logic
     created_at = Column(DateTime, default=datetime.utcnow)
 
     goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan")
@@ -106,8 +106,7 @@ class Investment(Base):
     current_value = Column(Numeric(15, 2), default=0)
     last_price = Column(Numeric(10, 2), nullable=True)
     last_price_at = Column(DateTime, nullable=True)
-    daily_change_pct = Column(Numeric(10, 4), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    daily_change = Column(Numeric(10, 2), default=0)
 
     user = relationship("User", back_populates="investments")
 
@@ -124,6 +123,34 @@ class Transaction(Base):
     executed_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="transactions")
+
+from sqlalchemy.dialects.postgresql import JSONB
+
+class Recommendation(Base):
+    __tablename__ = "recommendations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    title = Column(String(255), nullable=False)
+    recommendation_text = Column(String, nullable=False)
+    suggested_allocation = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")
+
+class Simulation(Base):
+    __tablename__ = "simulations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    goal_id = Column(Integer, ForeignKey("goals.id", ondelete="SET NULL"), nullable=True)
+    scenario_name = Column(String(100), nullable=False)
+    assumptions = Column(JSONB, nullable=False)
+    results = Column(JSONB, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")
+    goal = relationship("Goal")
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -242,11 +269,37 @@ class InvestmentResponse(BaseModel):
     current_value: float
     last_price: Optional[float]
     last_price_at: Optional[datetime]
-    daily_change_pct: Optional[float]
+    daily_change: Optional[float]
+
+    class Config:
+        orm_mode = True
+
+# Simulation Schemas
+class SimulationBase(BaseModel):
+    scenario_name: str
+    goal_id: Optional[int] = None
+    assumptions: Dict[str, float]
+
+class SimulationCreate(SimulationBase):
+    pass
+
+class SimulationResponse(SimulationBase):
+    id: int
+    user_id: int
+    results: Dict[str, float]
     created_at: datetime
 
     class Config:
         orm_mode = True
+
+# Recommendation Schemas
+class RecommendationResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    recommendation_text: str
+    suggested_allocation: Optional[Dict[str, float]]
+    created_at: datetime
 
     class Config:
         orm_mode = True
@@ -336,6 +389,49 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise HTTPException(status_code=401, detail="User not found")
 
     return user
+
+# Simulation Logic
+def calculate_simulation(assumptions: dict) -> dict:
+    """
+    Calculate future value and shortfall/surplus based on assumptions.
+    assumptions: {
+        'initial_amount': float,
+        'monthly_contribution': float,
+        'expected_return': float (annual %),
+        'inflation': float (annual %),
+        'time_horizon': int (years),
+        'target_amount': float (optional)
+    }
+    """
+    initial = assumptions.get('initial_amount', 0)
+    monthly = assumptions.get('monthly_contribution', 0)
+    ret_rate_pct = assumptions.get('expected_return', 0)
+    inf_rate_pct = assumptions.get('inflation', 0)
+    years = int(assumptions.get('time_horizon', 10))
+    target = assumptions.get('target_amount', 0)
+
+    # 1. Total Invested = Monthly Investment * 12 * Years + Initial Amount
+    # (Attributes initial amount to total invested as well)
+    total_invested = initial + (monthly * 12 * years)
+
+    # 2. Future Value = Total Invested * (1 + Expected Return/100)
+    # The user's formula implies a simple growth factor on the total sum. 
+    # To keep it slightly realistic for the initial amount, we might want to apply it to the whole.
+    # Based strictly on "Total Invested * (1 + Expected Return/100)"
+    fv = total_invested * (1 + (ret_rate_pct / 100))
+
+    # 3. Inflation Adjusted Value = Future Value / (1 + Inflation/100) ^ Years
+    fv_real = fv / ((1 + (inf_rate_pct / 100)) ** years)
+
+    shortfall_or_surplus = fv - target if target > 0 else 0
+
+    return {
+        "future_value": round(fv, 2),
+        "future_value_real": round(fv_real, 2),
+        "total_invested": round(total_invested, 2),
+        "shortfall_or_surplus": round(shortfall_or_surplus, 2),
+        "target_amount": target
+    }
 
 
 # Endpoints
@@ -641,10 +737,8 @@ async def create_transaction(
             inv.last_price_at = live_t
             inv.current_value = float(inv.units) * live_p
         else:
-            # Fallback to transaction price if live fetch fails
-            inv.last_price = price
-            inv.last_price_at = datetime.utcnow()
-            inv.current_value = float(inv.units) * price
+            # Fallback to last known or transaction price logic can go here if needed
+            pass
     
     try:
         # Sanitize NaN values before committing or returning
@@ -695,9 +789,59 @@ async def list_investments(
 
 @app.post("/api/v1/portfolio/update-prices")
 async def trigger_price_update(current_user: User = Depends(get_current_user)):
-    """Manual trigger for price updates"""
-    task = update_all_investment_prices.delay()
-    return {"message": "Price update task triggered", "task_id": task.id}
+    """Manual trigger for price updates (synchronous for immediate results)"""
+    result = update_all_investment_prices()
+    return {"message": "Price update completed", "detail": result}
+
+# Simulation Endpoints
+@app.post("/api/v1/simulations", response_model=SimulationResponse)
+async def create_simulation(
+    simulation: SimulationCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new simulation and calculate results"""
+    results = calculate_simulation(simulation.assumptions)
+    db_sim = Simulation(
+        user_id=current_user.id,
+        goal_id=simulation.goal_id,
+        scenario_name=simulation.scenario_name,
+        assumptions=simulation.assumptions,
+        results=results
+    )
+    db.add(db_sim)
+    db.commit()
+    db.refresh(db_sim)
+    return db_sim
+
+@app.get("/api/v1/simulations", response_model=List[SimulationResponse])
+async def list_simulations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """List all simulations for the current user"""
+    return db.query(Simulation).filter(Simulation.user_id == current_user.id).order_by(Simulation.created_at.desc()).all()
+
+@app.get("/api/v1/simulations/{simulation_id}", response_model=SimulationResponse)
+async def get_simulation(
+    simulation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get simulation details"""
+    sim = db.query(Simulation).filter(Simulation.id == simulation_id, Simulation.user_id == current_user.id).first()
+    if not sim:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+    return sim
+
+# Recommendation Endpoints
+@app.get("/api/v1/recommendations", response_model=List[RecommendationResponse])
+async def list_recommendations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """List all recommendations for the current user"""
+    return db.query(Recommendation).filter(Recommendation.user_id == current_user.id).order_by(Recommendation.created_at.desc()).all()
 
 @app.get("/api/v1/portfolio/search")
 async def search_stock_symbols(q: str, current_user: User = Depends(get_current_user)):

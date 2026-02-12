@@ -7,6 +7,7 @@ export default function Portfolio() {
     const [investments, setInvestments] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [newTx, setNewTx] = useState({
         symbol: "",
@@ -128,14 +129,22 @@ export default function Portfolio() {
 
     const handleRefreshPrices = async () => {
         try {
+            setIsRefreshing(true);
             const token = localStorage.getItem("access_token");
-            await axios.post("http://127.0.0.1:8000/api/v1/portfolio/update-prices", {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            toast.success("Price update task triggered! Please wait a moment.");
-            setTimeout(fetchData, 3000);
+            const headers = { Authorization: `Bearer ${token}` };
+
+            await axios.post("http://127.0.0.1:8000/api/v1/portfolio/update-prices", {}, { headers });
+
+            toast.success("Prices updated! Refetching data...");
+
+            await fetchData();
+            setIsRefreshing(false);
+            toast.success("Portfolio updated successfully");
+
         } catch (err) {
+            console.error("Refresh error:", err);
             toast.error("Failed to trigger price update");
+            setIsRefreshing(false);
         }
     };
 
@@ -169,10 +178,25 @@ export default function Portfolio() {
                 <div className="flex flex-wrap gap-4">
                     <button
                         onClick={handleRefreshPrices}
-                        className="bg-white/5 hover:bg-white/10 px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest border border-white/5 transition-all flex items-center gap-2 group"
+                        disabled={isRefreshing}
+                        className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all ${isRefreshing
+                            ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                            : "bg-white/5 hover:bg-white/10 border border-white/5"
+                            }`}
                     >
-                        <svg className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        Refresh Prices
+                        {isRefreshing ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-slate-500/20 border-t-slate-500 rounded-full animate-spin"></div>
+                                Refreshing...
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                Refresh Prices
+                            </>
+                        )}
                     </button>
                     <button
                         onClick={() => setShowAddModal(true)}

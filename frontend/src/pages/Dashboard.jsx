@@ -9,7 +9,8 @@ export default function Dashboard() {
   const [stats, setStats] = useState({
     investments: [],
     goals: [],
-    loading: true
+    loading: true,
+    isRefreshing: false
   });
 
   useEffect(() => {
@@ -38,6 +39,27 @@ export default function Dashboard() {
     }
   };
 
+  const handleRefreshPrices = async () => {
+    try {
+      setStats(prev => ({ ...prev, isRefreshing: true }));
+      const token = localStorage.getItem("access_token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      await axios.post("http://127.0.0.1:8000/api/v1/portfolio/update-prices", {}, { headers });
+
+      toast.success("Prices updated! Refetching data...");
+
+      await fetchData();
+      setStats(prev => ({ ...prev, isRefreshing: false }));
+      toast.success("Dashboard updated successfully");
+
+    } catch (err) {
+      console.error("Refresh error:", err);
+      toast.error("Failed to trigger price update");
+      setStats(prev => ({ ...prev, isRefreshing: false }));
+    }
+  };
+
   const totalNetWorth = useMemo(() => {
     return stats.investments.reduce((acc, inv) => acc + (inv.current_value || 0), 0);
   }, [stats.investments]);
@@ -56,16 +78,20 @@ export default function Dashboard() {
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
 
-  const { topGainer, topLoser } = useMemo(() => {
-    const filtered = stats.investments.filter(inv => inv.daily_change_pct !== null && inv.units > 0);
-    if (filtered.length === 0) return { topGainer: null, topLoser: null };
-
-    const sorted = [...filtered].sort((a, b) => b.daily_change_pct - a.daily_change_pct);
-    return {
-      topGainer: sorted[0],
-      topLoser: sorted[sorted.length - 1]
-    };
+  const topGainers = useMemo(() => {
+    return stats.investments
+      .filter(inv => inv.daily_change && Number(inv.daily_change) > 0)
+      .sort((a, b) => Number(b.daily_change) - Number(a.daily_change))
+      .slice(0, 1);
   }, [stats.investments]);
+
+  const topLosers = useMemo(() => {
+    return stats.investments
+      .filter(inv => inv.daily_change && Number(inv.daily_change) < 0)
+      .sort((a, b) => Number(a.daily_change) - Number(b.daily_change))
+      .slice(0, 1);
+  }, [stats.investments]);
+
 
   return (
     <div className="min-h-screen bg-[#020617] p-6 md:p-10 relative font-sans text-white overflow-x-hidden">
@@ -83,6 +109,28 @@ export default function Dashboard() {
               Welcome, <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">{name}</span>
             </h1>
           </div>
+          <button
+            onClick={handleRefreshPrices}
+            disabled={stats.isRefreshing}
+            className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all ${stats.isRefreshing
+              ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 active:scale-95"
+              }`}
+          >
+            {stats.isRefreshing ? (
+              <>
+                <div className="w-4 h-4 border-2 border-slate-500/20 border-t-slate-500 rounded-full animate-spin"></div>
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Refresh Prices
+              </>
+            )}
+          </button>
         </header>
 
         {stats.loading ? (
@@ -118,46 +166,67 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Performance Overview (New) */}
-              <div className="grid md:grid-cols-2 gap-6">
-                {topGainer && (
-                  <div className="glass-card p-6 border-emerald-500/10 bg-gradient-to-br from-emerald-500/[0.05] to-transparent relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                      <svg className="w-12 h-12 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 mb-4">Top Gainer Today</p>
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <h4 className="text-xl font-black tracking-tight uppercase">{topGainer.symbol}</h4>
-                        <p className="text-xs text-slate-400 font-bold uppercase mt-1">₹{topGainer.last_price?.toLocaleString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-black text-emerald-500 tracking-tighter">+{topGainer.daily_change_pct.toFixed(2)}%</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
-                {topLoser && (
-                  <div className="glass-card p-6 border-rose-500/10 bg-gradient-to-br from-rose-500/[0.05] to-transparent relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                      <svg className="w-12 h-12 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-rose-500 mb-4">Top Loser Today</p>
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <h4 className="text-xl font-black tracking-tight uppercase">{topLoser.symbol}</h4>
-                        <p className="text-xs text-slate-400 font-bold uppercase mt-1">₹{topLoser.last_price?.toLocaleString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-black text-rose-500 tracking-tighter">{topLoser.daily_change_pct.toFixed(2)}%</p>
-                      </div>
-                    </div>
+              {/* Top Gainers and Losers */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Top Gainers */}
+                <div className="glass-card p-8">
+                  <h3 className="text-lg font-black tracking-tight mb-6 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    Top Daily Gainers
+                  </h3>
+                  <div className="space-y-4">
+                    {topGainers.length > 0 ? (
+                      topGainers.map((inv) => (
+                        <div key={inv.id} className="flex justify-between items-center p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-green-500/30 transition-all group">
+                          <div>
+                            <p className="font-bold text-white group-hover:text-green-400 transition-colors">{inv.symbol}</p>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider">{inv.asset_type}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-black text-green-500">+{Number(inv.daily_change).toFixed(2)}%</p>
+                            <p className="text-xs text-slate-500">₹{Number(inv.last_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-slate-600 text-sm text-center py-8 italic">No gainers today</p>
+                    )}
                   </div>
-                )}
+                </div>
+
+                {/* Top Losers */}
+                <div className="glass-card p-8">
+                  <h3 className="text-lg font-black tracking-tight mb-6 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                    </svg>
+                    Top Daily Losers
+                  </h3>
+                  <div className="space-y-4">
+                    {topLosers.length > 0 ? (
+                      topLosers.map((inv) => (
+                        <div key={inv.id} className="flex justify-between items-center p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-red-500/30 transition-all group">
+                          <div>
+                            <p className="font-bold text-white group-hover:text-red-400 transition-colors">{inv.symbol}</p>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider">{inv.asset_type}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-black text-red-500">{Number(inv.daily_change).toFixed(2)}%</p>
+                            <p className="text-xs text-slate-500">₹{Number(inv.last_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-slate-600 text-sm text-center py-8 italic">No losers today</p>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Portfolio Chart Card */}
+              {/* Asset Allocation Chart */}
               <div className="md:col-span-2 glass-card p-8 min-h-[400px] flex flex-col">
                 <h3 className="text-lg font-black tracking-tight mb-8">Asset Allocation</h3>
                 <div className="flex-1 w-full flex items-center justify-center min-h-[350px]">
@@ -205,6 +274,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
+
             </div>
 
             {/* Goals List Sidebar */}
@@ -238,6 +308,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

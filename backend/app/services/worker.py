@@ -77,8 +77,8 @@ def update_all_investment_prices():
                 if price is not None:
                     inv.last_price = price
                     inv.last_price_at = timestamp
-                    inv.daily_change_pct = change
                     inv.current_value = float(inv.units) * price
+                    inv.daily_change = change
                     updates_count += 1
         
         db.commit()
@@ -96,6 +96,6 @@ def update_all_investment_prices():
 celery_app.conf.beat_schedule = {
     'scheduled-price-update': {
         'task': 'update_all_investment_prices',
-        'schedule': crontab(hour='4,16', minute=0),
+        'schedule': crontab(hour=16, minute=0),
     },
 }

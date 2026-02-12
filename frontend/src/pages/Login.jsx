@@ -24,7 +24,12 @@ export default function Login() {
       localStorage.setItem("profile_completed", res.data.profile_completed);
 
       toast.success(`Welcome back, ${res.data.name}`);
-      navigate("/dashboard");
+
+      if (res.data.profile_completed) {
+        navigate("/dashboard");
+      } else {
+        navigate("/riskprofile");
+      }
     } catch (err) {
       toast.error("Invalid credentials. Please try again.");
     }
