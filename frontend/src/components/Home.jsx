@@ -10,15 +10,13 @@ function Home() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
 
   const [goals, setGoals] = useState([]);
   const [holdings, setHoldings] = useState([]);
   const [transactions, setTransactions] = useState([]);
-
-  // ✅ Market data for graph
   const [marketData, setMarketData] = useState({});
 
-  // ✅ Symbol → Company name mapping
   const companyNames = {
     AAPL: "Apple",
     AMZN: "Amazon",
@@ -34,6 +32,13 @@ function Home() {
       try {
         const userData = await getCurrentUser();
         if (!userData) throw new Error("No user");
+
+        // ✅ RISK ASSESSMENT GATE
+        const riskCompleted = localStorage.getItem("riskCompleted");
+        if (!riskCompleted) {
+          navigate("/risk-assessment");
+          return;
+        }
 
         if (isMounted) setUser(userData);
 
@@ -52,11 +57,9 @@ function Home() {
           if (isMounted) setTransactions(t || []);
         } catch {}
 
-        // ✅ Fetch market snapshot
         const res = await fetch("http://127.0.0.1:8000/market/latest");
         const data = await res.json();
         if (isMounted) setMarketData(data);
-
       } catch (err) {
         toast.error("Session expired. Please login again.");
         navigate("/login");
@@ -71,6 +74,7 @@ function Home() {
 
   const handleLogout = () => {
     logoutUser();
+    localStorage.removeItem("riskCompleted");
     toast.success("Logout successful");
     setTimeout(() => navigate("/login"), 800);
   };
@@ -83,7 +87,6 @@ function Home() {
     );
   }
 
-  // ====== GOALS SUMMARY ======
   const totalGoals = goals.length;
   const activeGoals = goals.filter((g) => g.status === "active").length;
 
@@ -108,7 +111,6 @@ function Home() {
     return futureDates.length ? futureDates[0].toLocaleDateString() : "-";
   })();
 
-  // ====== PORTFOLIO SUMMARY ======
   const totalTransactions = transactions.length;
   const lastTx = transactions[0];
   const lastTxText = lastTx
@@ -120,12 +122,10 @@ function Home() {
     0
   );
 
-  // ====== MARKET GRAPH ======
   const maxMarketValue = Math.max(...Object.values(marketData || {}), 1);
 
   return (
     <div className="min-h-screen text-gray-900">
-      {/* Header */}
       <header className="backdrop-blur-md bg-white/70 shadow-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-3xl font-bold text-orange-800">WealthIQ</h1>
@@ -152,39 +152,66 @@ function Home() {
               Set Goal
             </button>
 
+            {/* 🌸 NEW RECOMMENDATIONS BUTTON */}
             <button
-              onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full"
+              onClick={() => navigate("/recommendations")}
+              className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-full"
             >
-              Logout
+              Recommendations
             </button>
 
-            {/* Profile icon */}
             <button
-              onClick={() => navigate("/profile")}
-              className="w-11 h-11 rounded-full bg-gray-900 text-white flex items-center justify-center"
-              title="Profile"
+              onClick={() => navigate("/simulation")}
+              className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-full"
             >
-              {user?.name?.charAt(0).toUpperCase() || "A"}
+              Simulation
             </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="w-11 h-11 rounded-full bg-gray-900 text-white flex items-center justify-center"
+              >
+                {user?.name?.charAt(0).toUpperCase() || "A"}
+              </button>
+
+              {showMenu && (
+                <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg z-50">
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      navigate("/profile");
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                  >
+                    My Profile
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      handleLogout();
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* ORIGINAL HOME CONTENT */}
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-6">
-
-        {/* Welcome */}
         <div className="bg-white/80 rounded-xl shadow-lg p-8">
-          <h2 className="text-4xl font-bold mb-2">
-            Welcome to Your Dashboard
-          </h2>
+          <h2 className="text-4xl font-bold mb-2">Welcome to Your Dashboard</h2>
           <p className="text-gray-700 text-lg">
             Track your goals, portfolio, and market trends.
           </p>
         </div>
 
-        {/* Summaries */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white/85 rounded-xl shadow-lg p-6">
             <h3 className="text-2xl font-bold text-orange-800 mb-3">
@@ -206,7 +233,6 @@ function Home() {
           </div>
         </div>
 
-        {/* Market Snapshot Graph */}
         <div className="bg-white/85 rounded-xl shadow-lg p-6">
           <h3 className="text-2xl font-bold text-orange-800 mb-4">
             Market Snapshot (Daily)
@@ -231,7 +257,6 @@ function Home() {
             ))}
           </div>
         </div>
-
       </main>
     </div>
   );

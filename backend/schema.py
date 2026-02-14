@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from datetime import datetime, date
 from enum import Enum
 
@@ -111,7 +111,6 @@ class GoalResponse(GoalBase):
     user_id: int
     created_at: datetime
 
-    # calculated fields
     duration_months: int
     required_monthly_investment: float
     total_invested: float
@@ -169,7 +168,7 @@ class TransactionResponse(TransactionBase):
         from_attributes = True
 
 
-# ================== RECOMMENDATIONS ==================
+# ================== RECOMMENDATIONS (OLD – TEXT BASED) ==================
 
 class RecommendationBase(BaseModel):
     title: str
@@ -194,20 +193,47 @@ class RecommendationResponse(RecommendationBase):
 
 class SimulationBase(BaseModel):
     scenario_name: str
-    assumptions: Dict
-    results: Dict
+    assumptions: Dict[str, Any]
 
 
 class SimulationCreate(SimulationBase):
-    user_id: int
-    goal_id: Optional[int]
+    goal_id: Optional[int] = None
+
+
+class SimulationUpdate(BaseModel):
+    scenario_name: Optional[str] = None
+    assumptions: Optional[Dict[str, Any]] = None
 
 
 class SimulationResponse(SimulationBase):
     id: int
     user_id: int
     goal_id: Optional[int]
+    results: Dict[str, Any]
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+# ================== WEEK 7 – REBALANCING & ALLOCATION ==================
+
+class AllocationResponse(BaseModel):
+    risk_profile: str
+    recommended: Dict[str, float]   # equity / debt / cash
+    current: Dict[str, float]
+    total_value: float
+
+
+class RebalanceSuggestion(BaseModel):
+    category: str                   # equity / debt / cash
+    action: str                     # increase / decrease
+    difference_percent: float
+    message: str
+
+
+class RebalanceResponse(BaseModel):
+    risk_profile: str
+    recommended: Dict[str, float]
+    current: Dict[str, float]
+    suggestions: List[RebalanceSuggestion]

@@ -24,56 +24,92 @@ function Market() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#fff4e6] to-[#ffd8a8] p-10">
-      
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={() => navigate("/home")}
-          className="text-orange-700 font-semibold hover:underline"
-        >
-          ← Back to Home
-        </button>
+    <div className="min-h-screen bg-gradient-to-br from-[#fff7ed] via-[#ffedd5] to-[#fed7aa]">
 
-        <h1 className="text-3xl font-bold text-orange-800">
-          Market Data Table
-        </h1>
+      {/* 🔶 Top Header */}
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <button
+            onClick={() => navigate("/home")}
+            className="text-orange-700 font-semibold hover:underline"
+          >
+            ← Back
+          </button>
 
-        <button
-          onClick={fetchMarketData}
-          className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2 rounded-lg"
-        >
-          {loading ? "Refreshing..." : "Refresh"}
-        </button>
-      </div>
+          <h1 className="text-2xl font-bold text-orange-800">
+            Market Overview
+          </h1>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-orange-100 text-orange-800">
-            <tr>
-              <th className="p-4">Symbol</th>
-              <th className="p-4">Last Price ($)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.keys(prices).length === 0 ? (
+          <button
+            onClick={fetchMarketData}
+            className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2 rounded-full transition"
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+      </header>
+
+      {/* 🔶 Content */}
+      <main className="max-w-5xl mx-auto px-6 py-12 space-y-8">
+
+        {/* Info Card */}
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Live Market Prices
+          </h2>
+          <p className="text-gray-600">
+            Latest snapshot of selected global stocks fetched from Yahoo Finance.
+          </p>
+        </div>
+
+        {/* Market Table */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <table className="w-full text-left">
+            <thead className="bg-orange-100 text-orange-800">
               <tr>
-                <td colSpan="2" className="p-6 text-center text-gray-500">
-                  No market data available
-                </td>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
+                  Symbol
+                </th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
+                  Last Price ($)
+                </th>
               </tr>
-            ) : (
-              Object.entries(prices).map(([symbol, price]) => (
-                <tr key={symbol} className="border-t">
-                  <td className="p-4 font-semibold">{symbol}</td>
-                  <td className="p-4">${Number(price).toFixed(2)}</td>
+            </thead>
+
+            <tbody>
+              {Object.keys(prices).length === 0 ? (
+                <tr>
+                  <td colSpan="2" className="px-6 py-8 text-center text-gray-500">
+                    No market data available
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                Object.entries(prices).map(([symbol, price], index) => (
+                  <tr
+                    key={symbol}
+                    className={`border-t transition ${
+                      index % 2 === 0 ? "bg-white" : "bg-orange-50/40"
+                    } hover:bg-orange-50`}
+                  >
+                    <td className="px-6 py-4 font-semibold text-gray-900">
+                      {symbol}
+                    </td>
+                    <td className="px-6 py-4 text-gray-800">
+                      ${Number(price).toFixed(2)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer hint */}
+        <div className="text-center text-sm text-gray-500">
+          Prices update during US market hours (7:00 PM – 1:30 AM IST).
+        </div>
+
+      </main>
     </div>
   );
 }

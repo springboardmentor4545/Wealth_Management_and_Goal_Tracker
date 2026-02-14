@@ -9,6 +9,9 @@ from routes.risk_routes import router as risk_router
 from routes.goal import router as goal_router
 from routes.portfolio import router as portfolio_router
 from database import get_db_connection
+from routes.simulations import router as simulation_router
+from routes.recommendations import router as recommendations_router
+
 
 load_dotenv()
 
@@ -31,6 +34,8 @@ app.include_router(auth_router)
 app.include_router(risk_router)
 app.include_router(goal_router)
 app.include_router(portfolio_router)
+app.include_router(simulation_router)
+app.include_router(recommendations_router)
 
 # -----------------------------
 # CORS Middleware
