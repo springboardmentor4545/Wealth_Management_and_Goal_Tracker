@@ -6,6 +6,7 @@ import HoldingsTable from "./HoldingsTable";
 import TransactionsTable from "./TransactionsTable";
 import BuyModal from "./BuyModal";
 import SellModal from "./SellModal";
+import PriceUpdateIndicator from "./PriceUpdateIndicator";
 
 function Portfolio() {
   const navigate = useNavigate();
@@ -36,6 +37,11 @@ function Portfolio() {
   const handleTransactionComplete = () => {
     setShowBuyModal(false);
     setShowSellModal(false);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handlePriceUpdateComplete = () => {
+    // Refresh portfolio data after price update
     setRefreshKey(prev => prev + 1);
   };
 
@@ -105,6 +111,11 @@ function Portfolio() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Price Update Indicator */}
+        <div className="mb-6">
+          <PriceUpdateIndicator onUpdateComplete={handlePriceUpdateComplete} />
+        </div>
+
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">

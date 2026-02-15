@@ -5,6 +5,7 @@ import Home from "./components/Home";
 import RiskAssessment from "./components/RiskAssessment";
 import Goals from "./components/Goals";
 import Portfolio from "./components/Portfolio";
+import SimulationsPage from './components/SimulationsPage';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
       <Route path="/risk-assessment" element={<RiskAssessment />} />
       <Route path="/goals" element={<Goals />} />
       <Route path="/portfolio" element={<Portfolio />} />
+      <Route path="/simulations" element={<SimulationsPage />} />
     </Routes>
   );
 }

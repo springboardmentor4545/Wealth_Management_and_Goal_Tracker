@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import GoalsTable from "./GoalsTable";
 import CreateGoalModal from "./CreateGoalModal";
+import PriceUpdateIndicator from "./PriceUpdateIndicator";
 
 function Home() {
   const navigate = useNavigate();
@@ -15,7 +16,9 @@ function Home() {
   const [stats, setStats] = useState({
     activeGoals: 0,
     totalInvested: 0,
-    overallProgress: 0
+    overallProgress: 0,
+    currentValue: 0,
+    profitLoss: 0
   });
 
   useEffect(() => {
@@ -59,6 +62,8 @@ function Home() {
         // Calculate stats
         const activeGoals = goals.filter(g => g.status === 'active').length;
         const totalInvested = portfolio.total_invested || 0;
+        const currentValue = portfolio.current_value || 0;
+        const profitLoss = portfolio.profit_loss || 0;
         const avgProgress = goals.length > 0 
           ? Math.round(goals.reduce((sum, g) => sum + (g.progress_percentage || 0), 0) / goals.length)
           : 0;
@@ -66,6 +71,8 @@ function Home() {
         setStats({
           activeGoals,
           totalInvested,
+          currentValue,
+          profitLoss,
           overallProgress: avgProgress
         });
       } catch (err) {
@@ -82,6 +89,34 @@ function Home() {
     logoutUser();
     toast.success("Logout successful");
     setTimeout(() => navigate("/login"), 800);
+  };
+
+  const handlePriceUpdateComplete = () => {
+    // Refresh stats after price update
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        const portfolioRes = await fetch('http://localhost:8000/portfolio/summary', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const portfolio = await portfolioRes.json();
+
+        setStats(prev => ({
+          ...prev,
+          totalInvested: portfolio.total_invested || 0,
+          currentValue: portfolio.current_value || 0,
+          profitLoss: portfolio.profit_loss || 0
+        }));
+      } catch (err) {
+        console.error("Failed to refresh stats:", err);
+      }
+    };
+
+    fetchStats();
   };
 
   if (loading) {
@@ -151,7 +186,13 @@ function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
                 Portfolio
-              </button>            
+              </button> 
+
+              <button onClick={() => navigate('/simulations')}
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg flex items-center gap-2"
+              >
+                📊 Simulations
+              </button>           
 
               {/* User Profile Dropdown */}
               <div className="relative">
@@ -203,12 +244,17 @@ function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
+        {/* Welcome Section with Price Update Indicator */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'User'}!
-          </h2>
-          <p className="text-gray-600">Track and manage your financial goals</p>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'User'}!
+              </h2>
+              <p className="text-gray-600">Track and manage your financial goals</p>
+            </div>
+            <PriceUpdateIndicator onUpdateComplete={handlePriceUpdateComplete} />
+          </div>
         </div>
 
         {/* Profile Completion Alert */}
@@ -238,8 +284,8 @@ function Home() {
           </div>
         )}
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Quick Stats - Enhanced with Current Value */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -253,6 +299,19 @@ function Home() {
             <p className="text-sm text-gray-600">Active Goals</p>
           </div>
 
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Cost</span>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">₹{stats.totalInvested.toLocaleString()}</h3>
+            <p className="text-sm text-gray-600">Total Invested</p>
+          </div>
+
           <div className="bg-white rounded-xl p-6 shadow-sm border border-green-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -260,10 +319,15 @@ function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
-              <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">Growth</span>
+              <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">Live</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">₹{stats.totalInvested.toLocaleString()}</h3>
-            <p className="text-sm text-gray-600">Total Invested</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">₹{stats.currentValue.toLocaleString()}</h3>
+            <p className="text-sm text-gray-600">Current Value</p>
+            {stats.profitLoss !== 0 && (
+              <p className={`text-xs font-semibold mt-1 ${stats.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {stats.profitLoss >= 0 ? '+' : ''}₹{stats.profitLoss.toLocaleString()}
+              </p>
+            )}
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100 hover:shadow-md transition-shadow">

@@ -6,7 +6,9 @@ from routes.auth import router as auth_router
 from routes.risk_routes import router as risk_router
 from routes.goals import router as goals_router
 from routes.portfolio import router as portfolio_router
+from routes.market import router as market_router
 from database import get_db_connection
+from routes.simulations import router as simulations_router
 
 load_dotenv()
 
@@ -18,6 +20,8 @@ app.include_router(auth_router)
 app.include_router(risk_router)
 app.include_router(goals_router)
 app.include_router(portfolio_router)
+app.include_router(market_router)
+app.include_router(simulations_router)
 
 app.add_middleware(
     CORSMiddleware,

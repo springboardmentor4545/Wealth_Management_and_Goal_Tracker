@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 from database import get_db_connection
 from routes.auth import get_current_user
+from services.market_data import market_service
 from decimal import Decimal
 
 router = APIRouter(
@@ -40,6 +41,8 @@ class HoldingResponse(BaseModel):
     avg_buy_price: float
     cost_basis: float
     current_value: float
+    last_price: Optional[float] = None
+    last_price_updated_at: Optional[str] = None
     profit_loss: float
     profit_loss_percentage: float
 
@@ -48,7 +51,40 @@ class HoldingResponse(BaseModel):
 # HELPER FUNCTIONS
 # =========================
 
-def calculate_holdings(user_id: int, conn):
+def format_symbol_for_market(symbol: str) -> str:
+    """
+    Convert database symbol to Yahoo Finance format
+    
+    Examples:
+        'TCS' -> 'TCS.NS'
+        'RELIANCE' -> 'RELIANCE.NS'
+        'AAPL' -> 'AAPL' (unchanged for US stocks)
+    """
+    symbol = symbol.upper().strip()
+    
+    # If already has an exchange suffix, return as-is
+    if '.' in symbol:
+        return symbol
+    
+    # List of common Indian stock symbols (you can expand this)
+    INDIAN_SYMBOLS = [
+        'TCS', 'RELIANCE', 'INFY', 'HDFCBANK', 'ICICIBANK', 
+        'SBIN', 'BHARTIARTL', 'ITC', 'KOTAKBANK', 'LT',
+        'HINDUNILVR', 'BAJFINANCE', 'ASIANPAINT', 'MARUTI', 'TITAN',
+        'AXISBANK', 'WIPRO', 'ULTRACEMCO', 'SUNPHARMA', 'NESTLEIND'
+    ]
+    
+    # For Indian symbols, append .NS (NSE)
+    if symbol in INDIAN_SYMBOLS:
+        return f"{symbol}.NS"
+    
+    # For unknown symbols, try .NS first (most common in India)
+    # If that fails, market_service will handle the error
+    # You can also try .BO (BSE) as fallback
+    return f"{symbol}.NS"
+
+
+def calculate_holdings(user_id: int, conn, include_market_prices: bool = True):
     """Calculate current holdings from all transactions"""
     cur = conn.cursor()
     
@@ -98,20 +134,71 @@ def calculate_holdings(user_id: int, conn):
     # Remove holdings with 0 units
     holdings = {k: v for k, v in holdings.items() if v['units'] > 0}
     
-    # Calculate averages
+    # Fetch current market prices if requested
+    market_prices = {}
+    if include_market_prices and holdings:
+        # Convert symbols to market format (TCS -> TCS.NS)
+        symbol_mapping = {}
+        market_symbols = []
+        
+        for db_symbol in holdings.keys():
+            market_symbol = format_symbol_for_market(db_symbol)
+            symbol_mapping[market_symbol] = db_symbol
+            market_symbols.append(market_symbol)
+        
+        print(f"🔄 Fetching prices for: {market_symbols}")
+        
+        try:
+            # Fetch prices with market-formatted symbols
+            raw_prices = market_service.get_multiple_prices(market_symbols)
+            
+            # Map back to database symbols
+            for market_symbol, price_data in raw_prices.items():
+                db_symbol = symbol_mapping[market_symbol]
+                market_prices[db_symbol] = price_data
+            
+            print(f"✅ Fetched market prices for {len(market_prices)} symbols")
+            print(f"📊 Prices: {[(k, v['price']) for k, v in market_prices.items()]}")
+            
+        except Exception as e:
+            print(f"⚠️ Could not fetch market prices: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
+    # Calculate averages and current values
     result = []
     for symbol, data in holdings.items():
         avg_buy_price = data['total_cost'] / data['units'] if data['units'] > 0 else 0
         cost_basis = data['total_cost'] + data['total_fees']
+        
+        # Use market price if available, otherwise use cost basis
+        if symbol in market_prices:
+            market_data = market_prices[symbol]
+            current_price = market_data['price']
+            current_value = data['units'] * current_price
+            last_price_updated_at = market_data['timestamp'].isoformat()
+            
+            print(f"✅ {symbol}: ₹{current_price:.2f} (market price)")
+        else:
+            current_price = None
+            current_value = cost_basis  # Fallback to cost basis
+            last_price_updated_at = None
+            
+            print(f"⚠️ {symbol}: No market price available, using cost basis")
+        
+        profit_loss = current_value - cost_basis
+        profit_loss_percentage = (profit_loss / cost_basis * 100) if cost_basis > 0 else 0
         
         result.append({
             'symbol': symbol,
             'units_held': round(data['units'], 4),
             'avg_buy_price': round(avg_buy_price, 2),
             'cost_basis': round(cost_basis, 2),
-            'current_value': round(data['total_cost'], 2),  # Static for now
-            'profit_loss': 0,  # Will calculate with real-time prices later
-            'profit_loss_percentage': 0
+            'current_value': round(current_value, 2),
+            'last_price': round(current_price, 2) if current_price else None,
+            'last_price_updated_at': last_price_updated_at,
+            'profit_loss': round(profit_loss, 2),
+            'profit_loss_percentage': round(profit_loss_percentage, 2)
         })
     
     cur.close()
@@ -217,7 +304,7 @@ def sell_asset(
         conn = get_db_connection()
         
         # Check if user has enough units to sell
-        holdings = calculate_holdings(user['id'], conn)
+        holdings = calculate_holdings(user['id'], conn, include_market_prices=False)
         symbol_holding = next((h for h in holdings if h['symbol'] == transaction.symbol.upper()), None)
         
         if not symbol_holding:
@@ -281,7 +368,7 @@ def sell_asset(
 
 
 # =========================
-# GET HOLDINGS
+# GET HOLDINGS (NOW WITH LIVE PRICES!)
 # =========================
 
 @router.get("/holdings", response_model=List[HoldingResponse])
@@ -290,7 +377,7 @@ def get_holdings(user=Depends(get_current_user)):
     
     try:
         conn = get_db_connection()
-        holdings = calculate_holdings(user['id'], conn)
+        holdings = calculate_holdings(user['id'], conn, include_market_prices=True)
         
         print(f"✅ Fetched {len(holdings)} holdings for user {user['id']}")
         return holdings
@@ -363,7 +450,7 @@ def get_transactions(user=Depends(get_current_user)):
 
 
 # =========================
-# GET PORTFOLIO SUMMARY
+# GET PORTFOLIO SUMMARY (NOW WITH LIVE PRICES!)
 # =========================
 
 @router.get("/summary")
@@ -372,7 +459,7 @@ def get_portfolio_summary(user=Depends(get_current_user)):
     
     try:
         conn = get_db_connection()
-        holdings = calculate_holdings(user['id'], conn)
+        holdings = calculate_holdings(user['id'], conn, include_market_prices=True)
         
         total_invested = sum(h['cost_basis'] for h in holdings)
         total_current_value = sum(h['current_value'] for h in holdings)
