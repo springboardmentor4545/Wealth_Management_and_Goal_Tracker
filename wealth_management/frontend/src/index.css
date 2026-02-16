@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* RESET BODY COLORS */
+html,
+body {
+  background-color: #f3f4f6; /* gray-100 */
+  color: #1f2937; /* gray-800 */
+}
+
+/* DARK MODE BODY */
+html.dark,
+html.dark body {
+  background-color: #111827; /* gray-900 */
+  color: #ffffff;
+}

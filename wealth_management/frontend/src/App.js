@@ -7,22 +7,92 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Goals from "./pages/Goals";
-import ProtectedRoute from "./components/ProtectedRoute";
+import Settings from "./pages/Setting";
 import Portfolio from "./pages/Portfolio";
+import MarketData from "./pages/MarketData";
+
+import ProtectedRoute from "./components/ProtectedRoute";
+import MainLayout from "./components/MainLayout";
+import { ThemeProvider } from "./context/ThemeContext";
+import Simulations from "./pages/Simulations";
 
 function App() {
   return (
-    <BrowserRouter>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        pauseOnHover
-      />
+    <ThemeProvider>
+      <BrowserRouter>
+        <ToastContainer position="top-right" autoClose={3000} />
 
-      <div className="min-h-screen bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#2dd4bf] to-[#1f2937]">
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Protected Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Dashboard />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/goals"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Goals />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/portfolio"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Portfolio />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/market"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <MarketData />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/simulations"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Simulations />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Settings />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/profile"
@@ -32,37 +102,9 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/goals"
-            element={
-              <ProtectedRoute>
-                <Goals />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/portfolio"
-            element={
-              <ProtectedRoute>
-                <Portfolio />
-              </ProtectedRoute>
-            }
-          />
-
         </Routes>
-      </div>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

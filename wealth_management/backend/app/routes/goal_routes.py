@@ -27,13 +27,16 @@ def calculate_goal_progress(goal: Goal):
         + 1
     )
 
-    invested = months_passed * goal.monthly_contribution
-    progress = min(100, (invested / goal.target_amount) * 100)
+    invested = min(goal.target_amount, months_passed * goal.monthly_contribution)
+    progress = (invested / goal.target_amount) * 100
+    required_monthly = goal.target_amount / total_months
 
     return {
         "months_remaining": max(0, total_months - months_passed),
         "invested_so_far": round(invested, 2),
-        "progress_percentage": round(progress, 2),
+        "required_monthly": round(required_monthly, 2),
+        "total_required": round(goal.target_amount, 2),
+        "progress_percentage": round(min(progress, 100), 2),
         "status": GoalStatusEnum.completed if progress >= 100 else goal.status,
     }
 

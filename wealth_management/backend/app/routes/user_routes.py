@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from ..database import get_db
 from ..models import User, RiskProfileEnum, KYCStatusEnum
-from ..schemas import UserCreate, UserLogin, RiskProfileSubmit, RiskProfileOut
+from ..schemas import UserCreate, UserLogin, RiskProfileSubmit, RiskProfileOut, ChangePassword
 from ..auth import hash_password, verify_password, create_token
 import os
 
@@ -98,3 +98,17 @@ def submit_risk_profile(payload: RiskProfileSubmit, db: Session = Depends(get_db
         "kyc_status": current_user.kyc_status,
         "profile_completed": current_user.profile_completed
     }
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePassword,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if payload.new_password != payload.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+
+    current_user.password = hash_password(payload.new_password)
+    db.commit()
+
+    return {"message": "Password updated successfully"}
