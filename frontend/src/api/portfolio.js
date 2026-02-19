@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getToken } from "./auth";
 
 const API_URL = "http://127.0.0.1:8000/portfolio";
 
@@ -7,7 +8,11 @@ const API_URL = "http://127.0.0.1:8000/portfolio";
 // =======================
 export const buyAsset = async (payload) => {
   try {
-    const res = await axios.post(`${API_URL}/buy`, payload);
+    const res = await axios.post(`${API_URL}/buy`, payload, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
     return res.data;
   } catch (err) {
     console.error("Buy asset error:", err.response?.data || err.message);
@@ -20,7 +25,11 @@ export const buyAsset = async (payload) => {
 // =======================
 export const sellAsset = async (payload) => {
   try {
-    const res = await axios.post(`${API_URL}/sell`, payload);
+    const res = await axios.post(`${API_URL}/sell`, payload, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
     return res.data;
   } catch (err) {
     console.error("Sell asset error:", err.response?.data || err.message);
@@ -29,11 +38,15 @@ export const sellAsset = async (payload) => {
 };
 
 // =======================
-// GET HOLDINGS
+// GET HOLDINGS  ✅ FIXED
 // =======================
-export const getHoldings = async (userId) => {
+export const getHoldings = async () => {
   try {
-    const res = await axios.get(`${API_URL}/holdings/${userId}`);
+    const res = await axios.get(`${API_URL}/holdings`, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
     return res.data;
   } catch (err) {
     console.error("Get holdings error:", err.response?.data || err.message);
@@ -42,11 +55,15 @@ export const getHoldings = async (userId) => {
 };
 
 // =======================
-// GET TRANSACTIONS (optional, if needed later)
+// GET TRANSACTIONS  ✅ FIXED
 // =======================
-export const getTransactions = async (userId) => {
+export const getTransactions = async () => {
   try {
-    const res = await axios.get(`${API_URL}/transactions/${userId}`);
+    const res = await axios.get(`${API_URL}/transactions`, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
     return res.data;
   } catch (err) {
     console.error("Get transactions error:", err.response?.data || err.message);

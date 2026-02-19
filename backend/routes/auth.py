@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from datetime import timedelta
 from database import get_db_connection
@@ -25,7 +25,6 @@ def signup(user: UserCreate):
     cur = conn.cursor()
 
     try:
-        # Check if user exists
         cur.execute("SELECT id FROM users WHERE email = %s", (user.email,))
         if cur.fetchone():
             raise HTTPException(
@@ -35,7 +34,7 @@ def signup(user: UserCreate):
 
         hashed_password = hash_password(user.password)
 
-        # ✅ LOCAL DB SAFE DEFAULTS
+        # Defaults for new users
         risk_profile = user.risk_profile or "moderate"
         kyc_status = user.kyc_status or "unverified"
 
@@ -50,7 +49,6 @@ def signup(user: UserCreate):
 
         new_user = cur.fetchone()
         conn.commit()
-
         return new_user
 
     except errors.UniqueViolation:
@@ -107,10 +105,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 # =========================
-# CURRENT USER
+# CURRENT USER (ENFORCEMENT HERE)
 # =========================
 @router.get("/me")
-def get_current_user(token: str = Depends(oauth2_scheme)):
+def get_current_user(
+    request: Request,
+    token: str = Depends(oauth2_scheme)
+):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
@@ -138,5 +139,19 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # ✅ ALLOWLIST: routes accessible before risk completion
+    allowed_paths = {
+        "/auth/me",
+        "/risk/questions",
+        "/risk/assessment"
+    }
+
+    if not user["profile_completed"]:
+        if request.url.path not in allowed_paths:
+            raise HTTPException(
+                status_code=403,
+                detail="Risk assessment not completed"
+            )
 
     return user

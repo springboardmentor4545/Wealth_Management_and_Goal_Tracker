@@ -37,7 +37,7 @@ function SimulationResult() {
   };
 
   return (
-    <div className="min-h-screen text-gray-900">
+    <div className="min-h-screen text-gray-900 bg-gradient-to-br from-pink-400 via-orange-400 to-orange-300">
 
       {/* ===== App Header ===== */}
       <header className="backdrop-blur-md bg-white/70 shadow-md">

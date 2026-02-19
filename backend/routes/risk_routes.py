@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from database import get_db_connection
 from schema import RiskAssessmentSubmit
+from routes.auth import get_current_user
 
 # ✅ ROUTER MUST BE DEFINED FIRST
 router = APIRouter(
@@ -59,12 +60,17 @@ def get_risk_questions():
 # SUBMIT RISK ASSESSMENT
 # =========================
 @router.post("/assessment")
-def submit_risk_assessment(data: RiskAssessmentSubmit):
+def submit_risk_assessment(
+    data: RiskAssessmentSubmit,
+    current_user: dict = Depends(get_current_user)
+):
     try:
+        user_id = current_user["id"]
+
         # Calculate total score from answers
         total_score = sum(answer.score for answer in data.answers)
 
-        # ✅ SCORING LOGIC
+        # ✅ SCORING LOGIC (unchanged)
         if 0 <= total_score <= 10:
             profile = "conservative"
         elif 11 <= total_score <= 18:
@@ -85,7 +91,7 @@ def submit_risk_assessment(data: RiskAssessmentSubmit):
                 profile_completed = TRUE,
                 kyc_status = %s
             WHERE id = %s
-        """, (total_score, profile, data.kyc_status, data.user_id))
+        """, (total_score, profile, data.kyc_status, user_id))
 
         conn.commit()
         cur.close()

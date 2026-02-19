@@ -1,13 +1,49 @@
 import { logoutUser, getCurrentUser } from "../api/auth";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "react-toastify";
 
 import { fetchGoals } from "../api/goal";
 import { getHoldings, getTransactions } from "../api/portfolio";
 
+// 📊 Chart imports
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Line, Doughnut, Bar } from "react-chartjs-2";
+
+// 📥 Download chart
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Tooltip,
+  Legend
+);
+
 function Home() {
   const navigate = useNavigate();
+
+  // 🔗 refs for each chart box
+  const growthRef = useRef(null);
+  const allocationRef = useRef(null);
+  const investedRef = useRef(null);
+  const goalRef = useRef(null);
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
@@ -33,7 +69,6 @@ function Home() {
         const userData = await getCurrentUser();
         if (!userData) throw new Error("No user");
 
-        // ✅ RISK ASSESSMENT GATE
         const riskCompleted = localStorage.getItem("riskCompleted");
         if (!riskCompleted) {
           navigate("/risk-assessment");
@@ -44,16 +79,16 @@ function Home() {
 
         try {
           const g = await fetchGoals();
-          if (isMounted) setGoals(g.data || []);
+          if (isMounted) setGoals(g?.data ?? g ?? []);
         } catch {}
 
         try {
-          const h = await getHoldings(1);
+          const h = await getHoldings();
           if (isMounted) setHoldings(h || []);
         } catch {}
 
         try {
-          const t = await getTransactions(1);
+          const t = await getTransactions();
           if (isMounted) setTransactions(t || []);
         } catch {}
 
@@ -74,9 +109,17 @@ function Home() {
 
   const handleLogout = () => {
     logoutUser();
-    localStorage.removeItem("riskCompleted");
     toast.success("Logout successful");
     setTimeout(() => navigate("/login"), 800);
+  };
+
+  // 📥 download helper
+  const downloadChart = async (ref, name) => {
+    const canvas = await html2canvas(ref.current, { scale: 2 });
+    const img = canvas.toDataURL("image/png");
+    const pdf = new jsPDF();
+    pdf.addImage(img, "PNG", 10, 10, 190, 0);
+    pdf.save(`${name}.pdf`);
   };
 
   if (loading) {
@@ -122,10 +165,9 @@ function Home() {
     0
   );
 
-  const maxMarketValue = Math.max(...Object.values(marketData || {}), 1);
-
   return (
-    <div className="min-h-screen text-gray-900">
+    <div className="min-h-screen text-gray-900 bg-gradient-to-br from-red-400 via-orange-400 to-yellow-300">
+      {/* HEADER — unchanged */}
       <header className="backdrop-blur-md bg-white/70 shadow-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-3xl font-bold text-orange-800">WealthIQ</h1>
@@ -152,7 +194,6 @@ function Home() {
               Set Goal
             </button>
 
-            {/* 🌸 NEW RECOMMENDATIONS BUTTON */}
             <button
               onClick={() => navigate("/recommendations")}
               className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-full"
@@ -203,7 +244,7 @@ function Home() {
         </div>
       </header>
 
-      {/* ORIGINAL HOME CONTENT */}
+      {/* MAIN CONTENT — summaries unchanged */}
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-6">
         <div className="bg-white/80 rounded-xl shadow-lg p-8">
           <h2 className="text-4xl font-bold mb-2">Welcome to Your Dashboard</h2>
@@ -233,29 +274,165 @@ function Home() {
           </div>
         </div>
 
-        <div className="bg-white/85 rounded-xl shadow-lg p-6">
-          <h3 className="text-2xl font-bold text-orange-800 mb-4">
-            Market Snapshot (Daily)
-          </h3>
+        {/* 📊 GRAPHS SECTION — only enhanced */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Portfolio Growth */}
+<div ref={growthRef} className="bg-white/85 rounded-xl shadow-lg p-6">
+  <div className="flex justify-between mb-2">
+    <h3 className="font-bold">Portfolio Growth Over Time</h3>
+    <button
+      onClick={() => downloadChart(growthRef, "Portfolio_Growth")}
+      className="text-sm text-blue-600"
+    >
+      Download
+    </button>
+  </div>
 
-          <div className="space-y-4">
-            {Object.entries(marketData).map(([symbol, value]) => (
-              <div key={symbol}>
-                <div className="flex justify-between mb-1 text-sm">
-                  <span className="font-semibold">
-                    {companyNames[symbol] || symbol}
-                  </span>
-                  <span>${Number(value).toFixed(2)}</span>
-                </div>
-                <div className="w-full bg-orange-100 rounded-full h-3">
-                  <div
-                    className="bg-orange-500 h-3 rounded-full"
-                    style={{ width: `${(value / maxMarketValue) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+  <Line
+    data={{
+      labels: [...transactions]
+        .sort(
+          (a, b) =>
+            new Date(a.executed_at) -
+            new Date(b.executed_at)
+        )
+        .map((t) =>
+          new Date(t.executed_at).toLocaleDateString()
+        ),
+      datasets: [
+        {
+          label: "Portfolio Value",
+          data: (() => {
+            let value = 0;
+            return [...transactions]
+              .sort(
+                (a, b) =>
+                  new Date(a.executed_at) -
+                  new Date(b.executed_at)
+              )
+              .map((t) => {
+                const amt = t.quantity * t.price;
+                value += t.type === "buy" ? amt : -amt;
+                return value;
+              });
+          })(),
+          borderColor: "#f97316",
+          backgroundColor: "rgba(249,115,22,0.35)",
+          fill: true,
+          tension: 0.4,
+        },
+      ],
+    }}
+  />
+</div>
+
+{/* Asset Allocation */}
+<div ref={allocationRef} className="bg-white/85 rounded-xl shadow-lg p-6">
+  <div className="flex justify-between mb-2">
+    <h3 className="font-bold">Asset Allocation</h3>
+    <button
+      onClick={() =>
+        downloadChart(allocationRef, "Asset_Allocation")
+      }
+      className="text-sm text-blue-600"
+    >
+      Download
+    </button>
+  </div>
+
+  <Doughnut
+    data={{
+      labels: [...new Set(holdings.map((h) => h.asset_type))],
+      datasets: [
+        {
+          data: Object.values(
+            holdings.reduce((acc, h) => {
+              acc[h.asset_type] =
+                (acc[h.asset_type] || 0) + h.cost_basis;
+              return acc;
+            }, {})
+          ),
+          backgroundColor: ["#60a5fa", "#34d399", "#fbbf24"],
+          borderWidth: 1,
+        },
+      ],
+    }}
+    options={{
+      cutout: "65%",
+      plugins: {
+        legend: { position: "bottom" },
+      },
+    }}
+  />
+</div>
+
+{/* Invested vs Current */}
+<div ref={investedRef} className="bg-white/85 rounded-xl shadow-lg p-6">
+  <div className="flex justify-between mb-2">
+    <h3 className="font-bold">Invested vs Current Value</h3>
+    <button
+      onClick={() =>
+        downloadChart(investedRef, "Invested_vs_Current")
+      }
+      className="text-sm text-blue-600"
+    >
+      Download
+    </button>
+  </div>
+
+  <Bar
+    data={{
+      labels: ["Invested", "Current"],
+      datasets: [
+        {
+          data: [
+            holdings.reduce((s, h) => s + h.cost_basis, 0),
+            holdings.reduce(
+              (s, h) =>
+                s +
+                h.units *
+                  (marketData[h.symbol] || h.avg_buy_price),
+              0
+            ),
+          ],
+          backgroundColor: ["#fb7185", "#4ade80"],
+        },
+      ],
+    }}
+  />
+</div>
+
+{/* Goal Progress */}
+<div ref={goalRef} className="bg-white/85 rounded-xl shadow-lg p-6">
+  <div className="flex justify-between mb-2">
+    <h3 className="font-bold">Goal Progress</h3>
+    <button
+      onClick={() =>
+        downloadChart(goalRef, "Goal_Progress")
+      }
+      className="text-sm text-blue-600"
+    >
+      Download
+    </button>
+  </div>
+
+  <Bar
+    data={{
+      labels: goals.map((g) => g.goal_type),
+      datasets: [
+        {
+          data: goals.map((g) => g.completion_percentage),
+          backgroundColor: "#60a5fa",
+        },
+      ],
+    }}
+    options={{
+      indexAxis: "y",
+      scales: { x: { max: 100 } },
+    }}
+  />
+</div>
         </div>
       </main>
     </div>
@@ -263,3 +440,4 @@ function Home() {
 }
 
 export default Home;
+

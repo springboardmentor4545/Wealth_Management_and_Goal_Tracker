@@ -88,7 +88,6 @@ class RiskAnswer(BaseModel):
 
 class RiskAssessmentSubmit(BaseModel):
     answers: List[RiskAnswer]
-    user_id: int
     kyc_status: str
 
 

@@ -6,34 +6,58 @@ import {
   sellAsset,
   getTransactions,
 } from "../api/portfolio";
+import { getCurrentUser } from "../api/auth";
 import { toast } from "react-toastify";
 
 export default function Portfolio() {
   const navigate = useNavigate();
-  const userId = 1; // demo user (as per backend)
+
+  // 🔑 Logged-in user
+  const [userId, setUserId] = useState(null);
 
   const [holdings, setHoldings] = useState([]);
   const [transactions, setTransactions] = useState([]);
 
-  // transaction form
   const [type, setType] = useState("buy");
   const [assetType, setAssetType] = useState("");
   const [symbol, setSymbol] = useState("");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
 
-  // ================= LOAD DATA =================
+  // =============================
+  // FETCH LOGGED IN USER
+  // =============================
   useEffect(() => {
+    (async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user) {
+          toast.error("Please login again");
+          navigate("/login");
+          return;
+        }
+        setUserId(user.id);
+      } catch {
+        toast.error("Authentication failed");
+        navigate("/login");
+      }
+    })();
+  }, [navigate]);
+
+  // =============================
+  // LOAD DATA AFTER USER ID
+  // =============================
+  useEffect(() => {
+    if (!userId) return;
     loadHoldings();
     loadTransactions();
-  }, []);
+  }, [userId]);
 
   const loadHoldings = async () => {
     try {
       const data = await getHoldings(userId);
       setHoldings(data);
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Failed to load holdings");
     }
   };
@@ -42,13 +66,14 @@ export default function Portfolio() {
     try {
       const data = await getTransactions(userId);
       setTransactions(data);
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Failed to load transactions");
     }
   };
 
-  // ================= BUY / SELL =================
+  // =============================
+  // SUBMIT TRANSACTION
+  // =============================
   const handleSubmit = async () => {
     if (!symbol || !quantity || !price || (type === "buy" && !assetType)) {
       toast.error("Please fill all required fields");
@@ -56,18 +81,14 @@ export default function Portfolio() {
     }
 
     const payload = {
-      user_id: userId,
-      symbol: symbol.trim().toUpperCase(), // ✅ important
+      symbol: symbol.trim().toUpperCase(),
       quantity: Number(quantity),
       price: Number(price),
     };
 
     try {
       if (type === "buy") {
-        await buyAsset({
-          ...payload,
-          asset_type: assetType, // ✅ must match enum values
-        });
+        await buyAsset({ ...payload, asset_type: assetType });
         toast.success("Buy transaction added");
       } else {
         await sellAsset(payload);
@@ -81,36 +102,32 @@ export default function Portfolio() {
 
       loadHoldings();
       loadTransactions();
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Transaction failed");
     }
   };
 
-  // ================= CALCULATIONS =================
   const totalPortfolioValue = holdings.reduce(
     (sum, h) => sum + Number(h.cost_basis || 0),
     0
   );
 
   return (
-    <div className="p-6 space-y-8 bg-gradient-to-br from-yellow-100 via-orange-200 to-yellow-50 min-h-screen">
-      {/* Top bar with back button */}
+    <div className="min-h-screen p-6 space-y-8 bg-gradient-to-br from-yellow-100 via-orange-200 to-yellow-50">
+
+      {/* ================= TOP BAR ================= */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate("/home")}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/70 hover:bg-white shadow"
-          title="Back to Home"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white shadow"
         >
-          <span className="text-xl">←</span>
-          <span className="font-semibold text-yellow-900">Back</span>
+          ← Back
         </button>
 
-        <h1 className="text-4xl font-extrabold text-center text-yellow-900 flex-1">
+        <h1 className="text-4xl font-extrabold text-yellow-900 text-center flex-1">
           Portfolio
         </h1>
 
-        {/* spacer so title stays centered */}
         <div className="w-[110px]" />
       </div>
 
@@ -135,7 +152,6 @@ export default function Portfolio() {
               onChange={(e) => setAssetType(e.target.value)}
             >
               <option value="">Select Asset Type</option>
-              {/* ✅ values match asset_type_enum exactly */}
               <option value="stock">Stock</option>
               <option value="etf">ETF</option>
               <option value="mutual_fund">Mutual Fund</option>
@@ -145,25 +161,24 @@ export default function Portfolio() {
           )}
 
           <input
-            type="text"
-            placeholder="Symbol (AAPL, NIFTYBEES)"
             className="border rounded px-3 py-2"
+            placeholder="Symbol"
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
           />
 
           <input
             type="number"
-            placeholder="Quantity"
             className="border rounded px-3 py-2"
+            placeholder="Quantity"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
           />
 
           <input
             type="number"
-            placeholder="Price"
             className="border rounded px-3 py-2"
+            placeholder="Price"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
@@ -184,58 +199,27 @@ export default function Portfolio() {
         <p className="mb-4 font-semibold">
           Total Portfolio Value: ₹{totalPortfolioValue.toFixed(2)}
         </p>
-
-        <table className="w-full border">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border p-2">Asset Type</th>
-              <th className="border p-2">Symbol</th>
-              <th className="border p-2">Units</th>
-              <th className="border p-2">Avg Buy Price</th>
-              <th className="border p-2">Cost Basis</th>
-            </tr>
-          </thead>
-          <tbody>
-            {holdings.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="text-center p-4">
-                  No holdings found
-                </td>
-              </tr>
-            ) : (
-              holdings.map((h, i) => (
-                <tr key={i}>
-                  <td className="border p-2">{h.asset_type}</td>
-                  <td className="border p-2">{h.symbol}</td>
-                  <td className="border p-2">{h.units}</td>
-                  <td className="border p-2">{h.avg_buy_price}</td>
-                  <td className="border p-2">{h.cost_basis}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
       </div>
 
-      {/* ================= TRANSACTIONS ================= */}
+      {/* ================= TRANSACTION HISTORY ================= */}
       <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-xl font-bold mb-4">Transaction History</h2>
 
         <table className="w-full border">
           <thead className="bg-gray-100">
             <tr>
-              <th className="border p-2">Type</th>
-              <th className="border p-2">Symbol</th>
-              <th className="border p-2">Qty</th>
-              <th className="border p-2">Price</th>
-              <th className="border p-2">Fees</th>
-              <th className="border p-2">Date</th>
+              {["Type", "Symbol", "Qty", "Price", "Fees", "Date"].map((h) => (
+                <th key={h} className="border p-2">
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
+
           <tbody>
             {transactions.length === 0 ? (
               <tr>
-                <td colSpan="6" className="text-center p-4">
+                <td colSpan="6" className="text-center p-4 text-gray-500">
                   No transactions yet
                 </td>
               </tr>
@@ -248,9 +232,7 @@ export default function Portfolio() {
                   <td className="border p-2">{t.price}</td>
                   <td className="border p-2">{t.fees}</td>
                   <td className="border p-2">
-                    {t.executed_at
-                      ? new Date(t.executed_at).toLocaleDateString()
-                      : "-"}
+                    {new Date(t.executed_at).toLocaleDateString()}
                   </td>
                 </tr>
               ))

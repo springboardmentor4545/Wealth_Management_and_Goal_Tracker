@@ -35,7 +35,11 @@ export default function SetGoal() {
   const loadGoals = async () => {
     try {
       const res = await fetchGoals();
-      setGoals(res.data);
+
+      // ✅ SAFE: supports both styles:
+      // - old goal.js returning axios response -> res.data
+      // - new goal.js returning data directly -> res
+      setGoals(res?.data ?? res);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load goals");
@@ -72,8 +76,9 @@ export default function SetGoal() {
   const handleSave = async () => {
     if (!user) return;
 
+    // ✅ ONLY user-id related change: REMOVE user_id from payload
+    // Backend gets user_id from JWT (current_user)
     const payload = {
-      user_id: user.id,
       goal_type: form.goal_type,
       target_amount: Number(form.target_amount),
       target_date: form.target_date,
@@ -179,7 +184,7 @@ export default function SetGoal() {
                   <td className="p-3">₹{goal.target_amount}</td>
                   <td className="p-3">{goal.target_date}</td>
 
-                  {/* NEW: user monthly contribution */}
+                  {/* user monthly contribution */}
                   <td className="p-3">₹{goal.monthly_contribution}</td>
 
                   {/* calculated */}

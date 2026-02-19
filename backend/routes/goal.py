@@ -1,12 +1,11 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from database import get_db_connection
 from schema import GoalCreate, GoalResponse, GoalBase
 from datetime import date
 from psycopg2.extras import RealDictCursor
+from routes.auth import get_current_user
 
 router = APIRouter(prefix="/goals", tags=["Goals"])
-
-TEST_USER_ID = 1
 
 
 # -----------------------------
@@ -20,9 +19,14 @@ def calculate_duration_months(start: date, end: date) -> int:
 # Create Goal
 # -----------------------------
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_goal(goal: GoalCreate):
+def create_goal(
+    goal: GoalCreate,
+    current_user: dict = Depends(get_current_user)
+):
     if goal.target_date < date.today():
         raise HTTPException(status_code=400, detail="Target date cannot be in the past")
+
+    user_id = current_user["id"]
 
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -48,7 +52,7 @@ def create_goal(goal: GoalCreate):
                 status,
                 created_at
         """, (
-            TEST_USER_ID,
+            user_id,
             goal.goal_type.value,
             goal.target_amount,
             goal.target_date,
@@ -80,7 +84,9 @@ def create_goal(goal: GoalCreate):
 # Get All Goals
 # -----------------------------
 @router.get("/")
-def get_goals():
+def get_goals(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["id"]
+
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -98,7 +104,7 @@ def get_goals():
             FROM goals
             WHERE user_id = %s
             ORDER BY created_at DESC
-        """, (TEST_USER_ID,))
+        """, (user_id,))
 
         goals = cur.fetchall()
         today = date.today()
@@ -127,9 +133,15 @@ def get_goals():
 # Update Goal
 # -----------------------------
 @router.put("/{goal_id}")
-def update_goal(goal_id: int, updated_goal: GoalBase):
+def update_goal(
+    goal_id: int,
+    updated_goal: GoalBase,
+    current_user: dict = Depends(get_current_user)
+):
     if updated_goal.target_date < date.today():
         raise HTTPException(status_code=400, detail="Target date cannot be in the past")
+
+    user_id = current_user["id"]
 
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -160,7 +172,7 @@ def update_goal(goal_id: int, updated_goal: GoalBase):
             updated_goal.monthly_contribution,
             updated_goal.status.value,
             goal_id,
-            TEST_USER_ID
+            user_id
         ))
 
         g = cur.fetchone()
@@ -189,7 +201,12 @@ def update_goal(goal_id: int, updated_goal: GoalBase):
 # Delete Goal (Hard delete for now)
 # -----------------------------
 @router.delete("/{goal_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_goal(goal_id: int):
+def delete_goal(
+    goal_id: int,
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user["id"]
+
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -197,7 +214,7 @@ def delete_goal(goal_id: int):
         cur.execute("""
             DELETE FROM goals
             WHERE id = %s AND user_id = %s
-        """, (goal_id, TEST_USER_ID))
+        """, (goal_id, user_id))
 
         if cur.rowcount == 0:
             raise HTTPException(status_code=404, detail="Goal not found")

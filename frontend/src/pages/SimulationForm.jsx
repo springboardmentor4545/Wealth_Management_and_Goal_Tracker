@@ -36,7 +36,7 @@ function SimulationForm() {
   };
 
   return (
-    <div className="min-h-screen text-gray-900">
+    <div className="min-h-screen text-gray-900 bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600">
 
       {/* ===== Top App Header ===== */}
       <header className="backdrop-blur-md bg-white/70 shadow-md">

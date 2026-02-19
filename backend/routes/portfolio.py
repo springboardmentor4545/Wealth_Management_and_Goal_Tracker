@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from database import get_db_connection
+from routes.auth import get_current_user
 
 router = APIRouter(prefix="/portfolio", tags=["Portfolio"])
-
 
 ALLOWED_ASSET_TYPES = {"stock", "etf", "mutual_fund", "bond", "cash"}
 
@@ -11,8 +11,11 @@ ALLOWED_ASSET_TYPES = {"stock", "etf", "mutual_fund", "bond", "cash"}
 # BUY ASSET
 # =========================
 @router.post("/buy")
-def buy_asset(payload: dict = Body(...)):
-    user_id = int(payload["user_id"])
+def buy_asset(
+    payload: dict = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user["id"]
 
     asset_type = str(payload["asset_type"]).strip().lower()
     if asset_type not in ALLOWED_ASSET_TYPES:
@@ -32,13 +35,13 @@ def buy_asset(payload: dict = Body(...)):
     try:
         total_cost = quantity * price + fees
 
-        # 1️⃣ Insert transaction (immutable history)
+        # 1️⃣ Insert transaction
         cur.execute("""
             INSERT INTO transactions (user_id, symbol, type, quantity, price, fees)
             VALUES (%s, %s, 'buy', %s, %s, %s)
         """, (user_id, symbol, quantity, price, fees))
 
-        # 2️⃣ Update investments (derived state)
+        # 2️⃣ Update investments
         cur.execute("""
             SELECT units, cost_basis
             FROM investments
@@ -81,8 +84,12 @@ def buy_asset(payload: dict = Body(...)):
 # SELL ASSET
 # =========================
 @router.post("/sell")
-def sell_asset(payload: dict = Body(...)):
-    user_id = int(payload["user_id"])
+def sell_asset(
+    payload: dict = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user["id"]
+
     symbol = str(payload["symbol"]).strip().upper()
     quantity = float(payload["quantity"])
     price = float(payload["price"])
@@ -92,7 +99,6 @@ def sell_asset(payload: dict = Body(...)):
     cur = conn.cursor()
 
     try:
-        # 1️⃣ Fetch current investment
         cur.execute("""
             SELECT units, cost_basis
             FROM investments
@@ -107,7 +113,6 @@ def sell_asset(payload: dict = Body(...)):
         if float(investment["units"]) < quantity:
             raise HTTPException(status_code=400, detail="Insufficient units")
 
-        # 2️⃣ Insert sell transaction
         cur.execute("""
             INSERT INTO transactions (user_id, symbol, type, quantity, price, fees)
             VALUES (%s, %s, 'sell', %s, %s, %s)
@@ -150,8 +155,10 @@ def sell_asset(payload: dict = Body(...)):
 # =========================
 # HOLDINGS (READ ONLY)
 # =========================
-@router.get("/holdings/{user_id}")
-def get_portfolio_holdings(user_id: int):
+@router.get("/holdings")
+def get_portfolio_holdings(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["id"]
+
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -175,8 +182,10 @@ def get_portfolio_holdings(user_id: int):
 # =========================
 # TRANSACTION HISTORY (READ ONLY)
 # =========================
-@router.get("/transactions/{user_id}")
-def get_transaction_history(user_id: int):
+@router.get("/transactions")
+def get_transaction_history(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["id"]
+
     conn = get_db_connection()
     cur = conn.cursor()
 
