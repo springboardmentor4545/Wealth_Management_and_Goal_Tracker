@@ -2,16 +2,13 @@ import { logoutUser, getCurrentUser } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import GoalsTable from "./GoalsTable";
-import CreateGoalModal from "./CreateGoalModal";
 import PriceUpdateIndicator from "./PriceUpdateIndicator";
+import DashboardGraphs from "./DashboardGraphs";
 
 function Home() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshGoals, setRefreshGoals] = useState(false);
-  const [showCreateGoal, setShowCreateGoal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [stats, setStats] = useState({
     activeGoals: 0,
@@ -20,6 +17,8 @@ function Home() {
     currentValue: 0,
     profitLoss: 0
   });
+  const [portfolioData, setPortfolioData] = useState(null);
+  const [goalsData, setGoalsData] = useState([]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -50,6 +49,7 @@ function Home() {
           }
         });
         const goals = await goalsRes.json();
+        setGoalsData(goals); // Store goals for graphs
         
         // Fetch portfolio stats
         const portfolioRes = await fetch('http://localhost:8000/portfolio/summary', {
@@ -58,6 +58,33 @@ function Home() {
           }
         });
         const portfolio = await portfolioRes.json();
+
+        // Store portfolio data for graphs
+        setPortfolioData({
+          total_invested: portfolio.total_invested || 0,
+          current_value: portfolio.current_value || 0,
+          profit_loss: portfolio.profit_loss || 0,
+          allocation: {
+            equity: 70, // You can get this from backend if available
+            debt: 20,
+            cash: 10
+          },
+          // Mock monthly snapshots - replace with real data from backend if available
+          monthly_snapshots: [
+            { date: 'Jan', value: portfolio.total_invested * 0.8 },
+            { date: 'Feb', value: portfolio.total_invested * 0.85 },
+            { date: 'Mar', value: portfolio.total_invested * 0.9 },
+            { date: 'Apr', value: portfolio.total_invested * 0.92 },
+            { date: 'May', value: portfolio.total_invested * 0.95 },
+            { date: 'Jun', value: portfolio.total_invested * 0.98 },
+            { date: 'Jul', value: portfolio.total_invested * 1.0 },
+            { date: 'Aug', value: portfolio.total_invested * 1.05 },
+            { date: 'Sep', value: portfolio.total_invested * 1.1 },
+            { date: 'Oct', value: portfolio.total_invested * 1.15 },
+            { date: 'Nov', value: portfolio.current_value * 0.95 },
+            { date: 'Dec', value: portfolio.current_value }
+          ]
+        });
 
         // Calculate stats
         const activeGoals = goals.filter(g => g.status === 'active').length;
@@ -83,7 +110,7 @@ function Home() {
     if (user) {
       fetchStats();
     }
-  }, [user, refreshGoals]);
+  }, [user]);
 
   const handleLogout = () => {
     logoutUser();
@@ -110,6 +137,14 @@ function Home() {
           totalInvested: portfolio.total_invested || 0,
           currentValue: portfolio.current_value || 0,
           profitLoss: portfolio.profit_loss || 0
+        }));
+
+        // Update portfolio data for graphs
+        setPortfolioData(prev => ({
+          ...prev,
+          total_invested: portfolio.total_invested || 0,
+          current_value: portfolio.current_value || 0,
+          profit_loss: portfolio.profit_loss || 0
         }));
       } catch (err) {
         console.error("Failed to refresh stats:", err);
@@ -173,26 +208,40 @@ function Home() {
               <button onClick={() => navigate("/goals")}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg flex items-center gap-2"
               >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-              </svg>
-              Goals
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                Goals
               </button>
 
               <button onClick={() => navigate("/portfolio")}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg flex items-center gap-2"
               >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
                 Portfolio
-              </button> 
+              </button>
 
               <button onClick={() => navigate('/simulations')}
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg flex items-center gap-2"
               >
-                📊 Simulations
-              </button>           
+                🔮 Simulations
+              </button>
+
+              <button 
+                onClick={() => navigate('/recommendations')}
+                className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2 rounded-xl font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg flex items-center gap-2"
+              >
+                📈 Recommendations
+              </button>
+
+              <button 
+                onClick={() => navigate('/reports')}
+                className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-xl font-semibold hover:from-orange-600 hover:to-red-600 transition-all shadow-lg flex items-center gap-2"
+              >
+                📊 Reports
+              </button>
 
               {/* User Profile Dropdown */}
               <div className="relative">
@@ -251,7 +300,7 @@ function Home() {
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
                 {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'User'}!
               </h2>
-              <p className="text-gray-600">Track and manage your financial goals</p>
+              <p className="text-gray-600">Welcome to your financial dashboard</p>
             </div>
             <PriceUpdateIndicator onUpdateComplete={handlePriceUpdateComplete} />
           </div>
@@ -284,7 +333,7 @@ function Home() {
           </div>
         )}
 
-        {/* Quick Stats - Enhanced with Current Value */}
+        {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
@@ -344,37 +393,59 @@ function Home() {
           </div>
         </div>
 
-        {/* Goals Section Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h3 className="text-xl font-bold text-gray-900">Your Financial Goals</h3>
-            <p className="text-sm text-gray-600 mt-1">Manage and track your investment goals</p>
+        {/* Dashboard Graphs - ALL 4 GRAPHS */}
+        {portfolioData && (
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">Portfolio Analytics</h3>
+                <p className="text-sm text-gray-600 mt-1">Visual insights into your investments</p>
+              </div>
+            </div>
+            <DashboardGraphs 
+              portfolioData={portfolioData} 
+              goalsData={goalsData}
+            />
           </div>
-          <button
-            onClick={() => setShowCreateGoal(true)}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg shadow-purple-500/30 transform hover:scale-105 flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Create New Goal
-          </button>
-        </div>
-
-        {/* Modal */}
-        {showCreateGoal && (
-          <CreateGoalModal
-            onClose={() => setShowCreateGoal(false)}
-            onGoalCreated={() => {
-              setRefreshGoals(!refreshGoals);
-              setShowCreateGoal(false);
-            }}
-          />
         )}
 
-        {/* Goals Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <GoalsTable refresh={refreshGoals} />
+        {/* Quick Actions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => navigate('/goals')}
+              className="p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group"
+            >
+              <div className="text-center">
+                <div className="text-3xl mb-2">🎯</div>
+                <p className="font-semibold text-gray-900 group-hover:text-purple-600">Manage Goals</p>
+                <p className="text-xs text-gray-500 mt-1">View and track your goals</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/portfolio')}
+              className="p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group"
+            >
+              <div className="text-center">
+                <div className="text-3xl mb-2">💼</div>
+                <p className="font-semibold text-gray-900 group-hover:text-green-600">View Portfolio</p>
+                <p className="text-xs text-gray-500 mt-1">See your investments</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/simulations')}
+              className="p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
+            >
+              <div className="text-center">
+                <div className="text-3xl mb-2">🔮</div>
+                <p className="font-semibold text-gray-900 group-hover:text-blue-600">Run Simulation</p>
+                <p className="text-xs text-gray-500 mt-1">Plan your future</p>
+              </div>
+            </button>
+          </div>
         </div>
       </main>
 

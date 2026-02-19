@@ -9,6 +9,8 @@ from routes.portfolio import router as portfolio_router
 from routes.market import router as market_router
 from database import get_db_connection
 from routes.simulations import router as simulations_router
+from routes.recommendations import router as recommendations_router
+from routes.reports import router as reports_router
 
 load_dotenv()
 
@@ -22,6 +24,8 @@ app.include_router(goals_router)
 app.include_router(portfolio_router)
 app.include_router(market_router)
 app.include_router(simulations_router)
+app.include_router(recommendations_router) 
+app.include_router(reports_router)
 
 app.add_middleware(
     CORSMiddleware,

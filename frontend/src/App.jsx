@@ -6,6 +6,8 @@ import RiskAssessment from "./components/RiskAssessment";
 import Goals from "./components/Goals";
 import Portfolio from "./components/Portfolio";
 import SimulationsPage from './components/SimulationsPage';
+import RecommendationsPage from './components/RecommendationsPage';
+import ReportsPage from './components/ReportsPage';
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
       <Route path="/goals" element={<Goals />} />
       <Route path="/portfolio" element={<Portfolio />} />
       <Route path="/simulations" element={<SimulationsPage />} />
+      <Route path="/recommendations" element={<RecommendationsPage />} />
+      <Route path="/reports" element={<ReportsPage />} />
     </Routes>
   );
 }
