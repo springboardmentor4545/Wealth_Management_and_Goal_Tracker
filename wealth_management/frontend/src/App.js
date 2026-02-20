@@ -15,6 +15,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./components/MainLayout";
 import { ThemeProvider } from "./context/ThemeContext";
 import Simulations from "./pages/Simulations";
+import Recommendations from "./pages/Recommendations";
 
 function App() {
   return (
@@ -78,6 +79,17 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <Simulations />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/recommendations"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Recommendations />
                 </MainLayout>
               </ProtectedRoute>
             }

@@ -4,9 +4,6 @@ from enum import Enum
 from datetime import date, datetime
 
 
-# =========================================================
-# USER SCHEMAS
-# =========================================================
 
 class ChangePassword(BaseModel):
     new_password: str
@@ -48,9 +45,6 @@ class RiskProfileOut(BaseModel):
         from_attributes = True
 
 
-# =========================================================
-# GOAL SCHEMAS
-# =========================================================
 
 class GoalTypeEnum(str, Enum):
     retirement = "retirement"
@@ -99,9 +93,6 @@ class GoalOut(BaseModel):
         from_attributes = True
 
 
-# =========================================================
-# PORTFOLIO SCHEMAS
-# =========================================================
 
 class AssetTypeEnum(str, Enum):
     stock = "stock"
@@ -111,7 +102,7 @@ class AssetTypeEnum(str, Enum):
     cash = "cash"
 
 
-# 🔥 FIXED ENUM (THIS SOLVES YOUR ERROR)
+
 class TransactionTypeEnum(str, Enum):
     buy = "buy"
     sell = "sell"
@@ -160,9 +151,7 @@ class InvestmentOut(BaseModel):
         from_attributes = True
 
 
-# =========================================================
-# SIMULATION SCHEMAS
-# =========================================================
+
 
 class SimulationAssumptions(BaseModel):
     expected_return: float
@@ -184,6 +173,23 @@ class SimulationOut(BaseModel):
     goal_id: Optional[int]
     assumptions: Dict[str, Any]
     results: Dict[str, Any]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RecommendationCreate(BaseModel):
+    title: str
+    recommendation_text: str
+    suggested_allocation: Dict[str, float]
+
+
+class RecommendationOut(BaseModel):
+    id: int
+    title: str
+    recommendation_text: str
+    suggested_allocation: Dict[str, float]
     created_at: datetime
 
     class Config:

@@ -5,7 +5,7 @@ from .database import SessionLocal
 from .models import User
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")  # must be the SAME
+SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")  
 ALGORITHM = "HS256"
 
 def get_db():

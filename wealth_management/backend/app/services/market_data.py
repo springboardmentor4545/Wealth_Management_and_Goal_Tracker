@@ -6,7 +6,7 @@ def fetch_latest_price(symbol: str) -> Decimal | None:
     try:
         ticker = yf.Ticker(symbol)
 
-        # Get latest available closing price
+        
         data = ticker.history(period="1d")
 
         if data.empty:

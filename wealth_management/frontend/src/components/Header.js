@@ -29,6 +29,7 @@ export default function Header() {
     { path: "/portfolio", label: "Portfolio" },
     { path: "/market", label: "Market" },
     { path: "/simulations", label: "Simulations" },
+    { path: "/recommendations", label: "Recommendations" },
   ];
 
   return (

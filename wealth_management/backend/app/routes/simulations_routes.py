@@ -12,9 +12,8 @@ from ..deps import get_current_user
 router = APIRouter(tags=["Simulations"])
 
 
-# =========================================================
+
 # COMPOUND SIP SIMULATION LOGIC
-# =========================================================
 def run_simulation(
     monthly_contribution: float,
     expected_return: float,
@@ -82,9 +81,8 @@ def run_simulation(
     return result
 
 
-# =========================================================
+
 # CREATE SIMULATION
-# =========================================================
 @router.post("/", response_model=SimulationOut)
 def create_simulation(
     simulation_data: SimulationCreate,
@@ -124,7 +122,7 @@ def create_simulation(
         goal_id=simulation_data.goal_id,
         scenario_name=simulation_data.scenario_name,
         assumptions=assumptions,
-        results=results,   # MUST remain dictionary
+        results=results,   
         created_at=datetime.utcnow(),
     )
 
@@ -135,9 +133,8 @@ def create_simulation(
     return simulation
 
 
-# =========================================================
+
 # LIST SIMULATIONS
-# =========================================================
 @router.get("/", response_model=List[SimulationOut])
 def list_simulations(
     db: Session = Depends(get_db),
@@ -153,9 +150,8 @@ def list_simulations(
     return simulations
 
 
-# =========================================================
+
 # GET SINGLE SIMULATION
-# =========================================================
 @router.get("/{simulation_id}", response_model=SimulationOut)
 def get_simulation(
     simulation_id: int,

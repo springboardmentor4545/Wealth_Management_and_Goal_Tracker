@@ -9,7 +9,7 @@ export default function MainLayout({ children }) {
       <Header />
 
       <div className="pt-24 min-h-screen transition-colors duration-300
-        bg-blue-50 text-gray-800
+        bg-gray-100 text-gray-800
         dark:bg-gray-900 dark:text-gray-100">
         {children}
       </div>

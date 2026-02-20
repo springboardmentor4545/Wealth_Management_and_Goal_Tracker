@@ -15,7 +15,7 @@ export default function Settings() {
     confirm_password: "",
   });
 
-  // Load user from localStorage
+  
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");

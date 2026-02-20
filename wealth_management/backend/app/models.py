@@ -9,6 +9,8 @@ from sqlalchemy import (
     ForeignKey,
     DateTime,
     Numeric,
+    JSON,
+    Text
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -17,9 +19,8 @@ from datetime import datetime
 from .database import Base
 
 
-# =========================================================
+
 # ENUMS
-# =========================================================
 
 class RiskProfileEnum(str, PyEnum):
     conservative = "conservative"
@@ -61,9 +62,8 @@ class TransactionTypeEnum(str, PyEnum):
     withdrawal = "withdrawal"
 
 
-# =========================================================
+
 # USER MODEL
-# =========================================================
 
 class User(Base):
     __tablename__ = "users"
@@ -89,7 +89,7 @@ class User(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+   
     goals = relationship(
         "Goal",
         back_populates="user",
@@ -115,9 +115,8 @@ class User(Base):
     )
 
 
-# =========================================================
+
 # GOALS MODEL
-# =========================================================
 
 class Goal(Base):
     __tablename__ = "goals"
@@ -138,7 +137,6 @@ class Goal(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
     user = relationship("User", back_populates="goals")
 
     simulations = relationship(
@@ -148,9 +146,8 @@ class Goal(Base):
     )
 
 
-# =========================================================
+
 # INVESTMENTS MODEL
-# =========================================================
 
 class Investment(Base):
     __tablename__ = "investments"
@@ -173,9 +170,8 @@ class Investment(Base):
     user = relationship("User", back_populates="investments")
 
 
-# =========================================================
+
 # TRANSACTIONS MODEL
-# =========================================================
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -195,9 +191,8 @@ class Transaction(Base):
     user = relationship("User", back_populates="transactions")
 
 
-# =========================================================
+
 # SIMULATIONS MODEL
-# =========================================================
 
 class Simulation(Base):
     __tablename__ = "simulations"
@@ -214,6 +209,22 @@ class Simulation(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
     user = relationship("User", back_populates="simulations")
     goal = relationship("Goal", back_populates="simulations")
+
+
+class Recommendation(Base):
+    __tablename__ = "recommendations"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    title = Column(String, nullable=False)
+    recommendation_text = Column(Text, nullable=False)
+
+    suggested_allocation = Column(JSON, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")
