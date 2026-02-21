@@ -16,6 +16,7 @@ from app.services.market_data import fetch_latest_price, search_symbols
 import os
 import math
 from dotenv import load_dotenv
+import logging
 
 # Load environment variables
 load_dotenv()
@@ -933,4 +934,5 @@ def api_health():
 
 # Add this to run directly
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
