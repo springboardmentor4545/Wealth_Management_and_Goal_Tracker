@@ -56,7 +56,11 @@ class TransactionType(enum.Enum):
     withdrawal = "withdrawal"
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:Thaanish22*@localhost/wealth_tracker")
+# Database configuration
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -183,9 +187,11 @@ app.add_middleware(
 )
 
 # Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY not set")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")) 
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
@@ -792,6 +798,34 @@ async def trigger_price_update(current_user: User = Depends(get_current_user)):
     """Manual trigger for price updates (synchronous for immediate results)"""
     result = update_all_investment_prices()
     return {"message": "Price update completed", "detail": result}
+
+@app.get("/api/v1/portfolio/last-refresh")
+async def get_last_price_refresh(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get the timestamp of the last price refresh for the current user's investments"""
+    try:
+        # Get the most recent last_price_at timestamp from user's investments
+        latest_refresh = db.query(Investment).filter(
+            Investment.user_id == current_user.id,
+            Investment.last_price_at.isnot(None)
+        ).order_by(Investment.last_price_at.desc()).first()
+        
+        if latest_refresh and latest_refresh.last_price_at:
+            return {
+                "last_refresh_at": latest_refresh.last_price_at,
+                "next_scheduled_refresh": "16:00 IST (Every Day)"
+            }
+        else:
+            return {
+                "last_refresh_at": None,
+                "next_scheduled_refresh": "16:00 IST (Every Day)",
+                "message": "No price data available yet"
+            }
+    except Exception as e:
+        logger.error(f"Error fetching last refresh time: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching refresh information")
 
 # Simulation Endpoints
 @app.post("/api/v1/simulations", response_model=SimulationResponse)

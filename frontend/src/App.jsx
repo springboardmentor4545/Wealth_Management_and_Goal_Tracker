@@ -9,6 +9,7 @@ import KYC from "./pages/kyc";
 import Goals from "./pages/Goals";
 import Portfolio from "./pages/Portfolio";
 import Simulations from "./pages/Simulations";
+import Recommendations from "./pages/Recommendations";
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem("access_token");
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
         <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
         <Route path="/simulations" element={<ProtectedRoute><Simulations /></ProtectedRoute>} />
+        <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

@@ -10,6 +10,8 @@ export default function Profile() {
   const [email, setEmail] = useState(localStorage.getItem("email") || "Not provided");
   const [kycStatus, setKycStatus] = useState(localStorage.getItem("kyc_status") || "unverified");
   const [profileCompleted, setProfileCompleted] = useState(localStorage.getItem("profile_completed") === "true");
+  const [riskScore, setRiskScore] = useState(localStorage.getItem("risk_score") || "");
+  const [riskProfile, setRiskProfile] = useState(localStorage.getItem("risk_profile") || "");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,12 +25,16 @@ export default function Profile() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      const { kyc_status, profile_completed } = res.data;
+      const { kyc_status, profile_completed, risk_score, risk_profile } = res.data;
       setKycStatus(kyc_status);
       setProfileCompleted(profile_completed);
+      setRiskScore(risk_score);
+      setRiskProfile(risk_profile);
 
       localStorage.setItem("kyc_status", kyc_status);
       localStorage.setItem("profile_completed", profile_completed);
+      localStorage.setItem("risk_score", risk_score || "");
+      localStorage.setItem("risk_profile", risk_profile || "");
     } catch (err) {
       toast.error("Failed to sync profile status");
       console.error("Failed to fetch profile status", err);
@@ -42,7 +48,7 @@ export default function Profile() {
       {/* Background Ambience */}
       <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.05)_0%,transparent_50%)]"></div>
 
-      <div className="relative max-w-4xl mx-auto space-y-10 animate-in fade-in duration-700">
+      <div className="relative max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700">
         <Navbar />
 
         <header className="space-y-4">
@@ -96,7 +102,9 @@ export default function Profile() {
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-2 rounded-full ${profileCompleted ? "bg-emerald-500" : "bg-blue-500"}`}></div>
                     <span className={`text-sm font-black uppercase tracking-widest ${profileCompleted ? "text-emerald-500" : "text-blue-500"}`}>
-                      {profileCompleted ? "Completed" : "Action Required"}
+                      {profileCompleted
+                        ? (riskProfile ? `${riskProfile}` : "Completed")
+                        : "Action Required"}
                     </span>
                   </div>
                 </div>

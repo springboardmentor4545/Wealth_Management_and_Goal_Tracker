@@ -8,6 +8,7 @@ export default function RiskProfile() {
   const [questions, setQuestions] = useState([])
   const [currentStep, setCurrentStep] = useState(0)
   const [answers, setAnswers] = useState({})
+  const [selectedOptions, setSelectedOptions] = useState({}) // Track unique selection for UI
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -27,9 +28,10 @@ export default function RiskProfile() {
     }
   }
 
-  const selectOption = (score) => {
+  const selectOption = (opt) => {
     const qId = questions[currentStep].id
-    setAnswers({ ...answers, [qId]: score })
+    setAnswers({ ...answers, [qId]: opt.score })
+    setSelectedOptions({ ...selectedOptions, [qId]: opt.text })
 
     if (currentStep < questions.length - 1) {
       setTimeout(() => setCurrentStep(currentStep + 1), 400)
@@ -105,15 +107,15 @@ export default function RiskProfile() {
               {currentQ?.options.map((opt, idx) => (
                 <button
                   key={idx}
-                  onClick={() => selectOption(opt.score)}
-                  className={`group p-6 rounded-2xl border text-left transition-all duration-300 relative overflow-hidden ${answers[currentQ.id] === opt.score
+                  onClick={() => selectOption(opt)}
+                  className={`group p-6 rounded-2xl border text-left transition-all duration-300 relative overflow-hidden ${selectedOptions[currentQ.id] === opt.text
                     ? "bg-blue-600 border-blue-500 shadow-xl shadow-blue-600/30"
                     : "bg-white/5 border-white/10 hover:bg-white/[0.08] hover:border-white/20 active:scale-[0.98]"
                     }`}
                 >
                   <div className="relative z-10 flex items-center justify-between">
-                    <span className={`text-sm font-black uppercase tracking-wider ${answers[currentQ.id] === opt.score ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>{opt.text}</span>
-                    {answers[currentQ.id] === opt.score && (
+                    <span className={`text-sm font-black uppercase tracking-wider ${selectedOptions[currentQ.id] === opt.text ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>{opt.text}</span>
+                    {selectedOptions[currentQ.id] === opt.text && (
                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                     )}
                   </div>

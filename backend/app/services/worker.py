@@ -27,13 +27,15 @@ celery_app = Celery(
     backend=REDIS_URL
 )
 
-# Celery configuration
+# Celery configuration (Windows-compatible)
 celery_app.conf.update(
     task_serializer='json',
     accept_content=['json'],
     result_serializer='json',
     timezone='Asia/Kolkata',
-    enable_utc=False,
+    enable_utc=True,           # Keep UTC internally, schedule in IST via crontab
+    worker_pool_restarts=True, # Needed for Windows stability
+    broker_connection_retry_on_startup=True,
 )
 
 logger = logging.getLogger(__name__)
@@ -92,10 +94,11 @@ def update_all_investment_prices():
     finally:
         db.close()
 
-# Schedule price updates every 12 hours (4 AM and 4 PM IST)
+# Schedule price updates daily at 7 PM IST (19:00 IST = 13:30 UTC)
+# Since enable_utc=True, we use UTC time: 19:00 IST = 13:30 UTC
 celery_app.conf.beat_schedule = {
-    'scheduled-price-update': {
+    'daily-price-update-7pm-ist': {
         'task': 'update_all_investment_prices',
-        'schedule': crontab(hour=16, minute=0),
+        'schedule': crontab(hour=13, minute=30),  # 13:30 UTC = 19:00 IST
     },
 }

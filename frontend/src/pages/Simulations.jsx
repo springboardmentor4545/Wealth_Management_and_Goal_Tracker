@@ -121,8 +121,8 @@ export default function Simulations() {
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 px-4">
                     <div className="space-y-2">
                         <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-blue-500">Wealth Analysis</h2>
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tight">
-                            Simulations & <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">What-If</span>
+                        <h1 className="text-5xl font-black tracking-tight">
+                            Simulations & <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">What-If</span>
                         </h1>
                     </div>
                     <button
@@ -227,7 +227,7 @@ export default function Simulations() {
 
                                 <button
                                     type="submit"
-                                    className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 font-bold uppercase tracking-widest text-xs hover:from-blue-500 hover:to-purple-500 transition-all shadow-lg"
+                                    className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 font-bold uppercase tracking-widest text-xs hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg"
                                 >
                                     Save & Run Simulation
                                 </button>

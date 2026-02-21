@@ -22,6 +22,7 @@ export default function Login() {
       localStorage.setItem("email", res.data.email);
       localStorage.setItem("kyc_status", res.data.kyc_status);
       localStorage.setItem("profile_completed", res.data.profile_completed);
+      localStorage.setItem("risk_score", res.data.risk_score || "");
 
       toast.success(`Welcome back, ${res.data.name}`);
 

@@ -81,7 +81,7 @@ export default function Portfolio() {
         setNewTx({
             ...newTx,
             symbol: quote.symbol,
-            asset_type: quote.type === 'EQUITY' ? 'stock' : (quote.type === 'ETF' ? 'etf' : newTx.asset_type)
+            asset_type: quote.type === 'EQUITY' ? 'stock' : (quote.type === 'ETF' ? 'etf' : (quote.type === 'MUTUALFUND' ? 'mutual_fund' : newTx.asset_type))
         });
         setShowDropdown(false);
     };
@@ -90,12 +90,13 @@ export default function Portfolio() {
         e.preventDefault();
         try {
             const token = localStorage.getItem("access_token");
+            const isSimplified = newTx.asset_type === 'cash';
             const quantity = parseFloat(newTx.quantity);
-            const price = parseFloat(newTx.price);
+            const price = isSimplified ? 1 : parseFloat(newTx.price);
             const fees = parseFloat(newTx.fees);
 
             if (quantity <= 0 || price <= 0) {
-                toast.error("Quantity and Price must be positive");
+                toast.error(isSimplified ? "Amount must be positive" : "Quantity and Price must be positive");
                 return;
             }
 
@@ -134,8 +135,6 @@ export default function Portfolio() {
             const headers = { Authorization: `Bearer ${token}` };
 
             await axios.post("http://127.0.0.1:8000/api/v1/portfolio/update-prices", {}, { headers });
-
-            toast.success("Prices updated! Refetching data...");
 
             await fetchData();
             setIsRefreshing(false);
@@ -231,7 +230,7 @@ export default function Portfolio() {
                                                 <th className="px-8 py-5">Units</th>
                                                 <th className="px-8 py-5">Avg Buy</th>
                                                 <th className="px-8 py-5">Market Price</th>
-                                                <th className="px-8 py-5 text-right">Value</th>
+                                                <th className="px-8 py-5 text-right">Current Value</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
@@ -251,17 +250,23 @@ export default function Portfolio() {
                                                                 {inv.last_price_at ? `Updated: ${new Date(inv.last_price_at).toLocaleTimeString()}` : 'No update yet'}
                                                             </div>
                                                         </td>
-                                                        <td className="px-8 py-6 font-bold text-slate-200">{inv.units.toLocaleString('en-IN', { maximumFractionDigits: 4 })}</td>
-                                                        <td className="px-8 py-6 text-slate-400 font-medium">₹{inv.avg_buy_price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                                        <td className="px-8 py-6 font-bold text-slate-200">
+                                                            {inv.asset_type === 'cash' ? `₹${inv.units.toLocaleString('en-IN')}` : inv.units.toLocaleString('en-IN', { maximumFractionDigits: 4 })}
+                                                        </td>
+                                                        <td className="px-8 py-6 text-slate-400 font-medium whitespace-nowrap">
+                                                            {inv.asset_type === 'cash' ? (
+                                                                <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Simplified</span>
+                                                            ) : `₹${inv.avg_buy_price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                                                        </td>
                                                         <td className="px-8 py-6">
                                                             <div className="flex flex-col">
                                                                 <span className="font-bold text-white">
                                                                     {inv.last_price !== null
-                                                                        ? `₹${inv.last_price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                                                                        ? (inv.asset_type === 'mutual_fund' || inv.asset_type === 'cash' ? `₹${inv.last_price.toLocaleString('en-IN')}` : `₹${inv.last_price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`)
                                                                         : '₹---'}
                                                                 </span>
                                                                 <span className={`text-[10px] font-black uppercase tracking-widest mt-1 ${inv.last_price !== null ? (profit >= 0 ? 'text-emerald-500' : 'text-rose-500') : 'text-slate-600'}`}>
-                                                                    {inv.last_price !== null ? `${profit >= 0 ? '▲' : '▼'} ${Math.abs(profitPct).toFixed(2)}%` : '---'}
+                                                                    {inv.last_price !== null ? (inv.asset_type === 'cash' ? 'VALUE' : `${profit >= 0 ? '▲' : '▼'} ${Math.abs(profitPct).toFixed(2)}%`) : '---'}
                                                                 </span>
                                                             </div>
                                                         </td>
@@ -315,7 +320,11 @@ export default function Portfolio() {
                                                     </td>
                                                     <td className="px-8 py-6">
                                                         <div className="font-bold text-slate-200 uppercase tracking-wider">{tx.symbol}</div>
-                                                        <div className="text-[10px] text-slate-500 font-medium uppercase mt-0.5">{tx.quantity} Units @ ₹{tx.price.toLocaleString()}</div>
+                                                        <div className="text-[10px] text-slate-500 font-medium uppercase mt-0.5 whitespace-nowrap">
+                                                            {tx.asset_type === 'cash'
+                                                                ? `Invested: ₹${tx.quantity.toLocaleString('en-IN')}`
+                                                                : `${tx.quantity} Units @ ₹${tx.price.toLocaleString('en-IN')}`}
+                                                        </div>
                                                     </td>
                                                     <td className="px-8 py-6 text-right font-black text-white tabular-nums">
                                                         ₹{((tx.quantity * tx.price) + (tx.type === 'buy' ? tx.fees : -tx.fees)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -337,7 +346,7 @@ export default function Portfolio() {
                     <div className="glass-card bg-[#0f172a] border-white/10 p-10 max-w-xl w-full space-y-8 shadow-2xl relative animate-in zoom-in slide-in-from-bottom-8 duration-500 overflow-visible">
                         <div className="flex justify-between items-center">
                             <div>
-                                <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-blue-500 mb-1">New Entry</h2>
+                                <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-blue-500 mb-1">Entry</h2>
                                 <h3 className="text-3xl font-black tracking-tight">Record Transaction</h3>
                             </div>
                             <button onClick={() => setShowAddModal(false)} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors text-slate-400 hover:text-white">
@@ -398,49 +407,71 @@ export default function Portfolio() {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Asset Type</label>
-                                <div className="grid grid-cols-3 gap-3">
-                                    {['stock', 'etf', 'bond'].map((type) => (
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                    {[
+                                        { id: 'stock', label: 'Stock' },
+                                        { id: 'etf', label: 'ETF' },
+                                        { id: 'mutual_fund', label: 'Mutual Fund' },
+                                        { id: 'bond', label: 'Bond' },
+                                        { id: 'cash', label: 'Cash' }
+                                    ].map((type) => (
                                         <button
-                                            key={type}
+                                            key={type.id}
                                             type="button"
-                                            onClick={() => setNewTx({ ...newTx, asset_type: type })}
-                                            className={`py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${newTx.asset_type === type
-                                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/30'
+                                            onClick={() => setNewTx({ ...newTx, asset_type: type.id })}
+                                            className={`py-3 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${newTx.asset_type === type.id
+                                                ? 'bg-gradient-to-r from-blue-600 to-blue-400 relative shadow-[0_0_15px_rgba(59,130,246,0.3)] text-white border-blue-500'
                                                 : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'
                                                 }`}
                                         >
-                                            {type}
+                                            {type.label}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            {newTx.asset_type === 'cash' ? (
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Quantity</label>
-                                    <input
-                                        type="number"
-                                        step="0.000001"
-                                        required
-                                        className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold tabular-nums"
-                                        placeholder="0.00"
-                                        value={newTx.quantity}
-                                        onChange={(e) => setNewTx({ ...newTx, quantity: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Price per Unit</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Invested Amount</label>
                                     <input
                                         type="number"
                                         step="0.01"
                                         required
                                         className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold tabular-nums"
                                         placeholder="₹0.00"
-                                        value={newTx.price}
-                                        onChange={(e) => setNewTx({ ...newTx, price: e.target.value })}
+                                        value={newTx.quantity}
+                                        onChange={(e) => setNewTx({ ...newTx, quantity: e.target.value })}
                                     />
+                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest ml-1">Total cash outflow for this entry</p>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Quantity</label>
+                                        <input
+                                            type="number"
+                                            step="0.000001"
+                                            required
+                                            className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold tabular-nums"
+                                            placeholder="0.00"
+                                            value={newTx.quantity}
+                                            onChange={(e) => setNewTx({ ...newTx, quantity: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Price per Unit</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            required
+                                            className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold tabular-nums"
+                                            placeholder="₹0.00"
+                                            value={newTx.price}
+                                            onChange={(e) => setNewTx({ ...newTx, price: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Processing Fees (₹)</label>

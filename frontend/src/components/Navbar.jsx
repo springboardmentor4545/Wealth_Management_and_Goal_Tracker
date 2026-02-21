@@ -15,7 +15,7 @@ export default function Navbar() {
 
     return (
         <nav className="glass-card px-8 py-4 border-white/5 flex justify-between items-center relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/[0.03] to-purple-600/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/[0.03] to-blue-400/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
 
             <div
                 className="flex items-center gap-3 cursor-pointer relative z-10"
@@ -34,6 +34,7 @@ export default function Navbar() {
                     { name: 'Portfolio', path: '/portfolio' },
                     { name: 'Goals', path: '/goals' },
                     { name: 'Simulations', path: '/simulations' },
+                    { name: 'Recommendations', path: '/recommendations' },
                     { name: 'Profile', path: '/profile' }
                 ].map((item) => (
                     <button
@@ -52,10 +53,9 @@ export default function Navbar() {
 
                 <button
                     onClick={logout}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-rose-600/20 text-slate-500 hover:text-rose-400 transition-all border border-white/5 group/logout"
-                    title="Logout"
+                    className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border bg-rose-500/10 border-rose-500/20 text-rose-500 hover:bg-rose-500/20 shadow-lg shadow-rose-500/5 active:scale-95"
                 >
-                    <svg className="w-5 h-5 group-hover/logout:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4-4H3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    Logout
                 </button>
             </div>
         </nav>

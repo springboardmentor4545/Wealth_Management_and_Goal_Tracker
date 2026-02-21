@@ -137,14 +137,14 @@ export default function Goals() {
 
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
                     <div className="space-y-2">
-                        <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-purple-500">My Targets</h2>
+                        <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-blue-500">My Targets</h2>
                         <h1 className="text-5xl font-black tracking-tight">Financial Goals</h1>
                         <p className="text-slate-400 font-medium">Plan and track your future aspirations.</p>
                     </div>
 
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="bg-purple-600 hover:bg-purple-500 px-8 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest shadow-xl shadow-purple-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2"
+                        className="bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest shadow-xl shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2"
                     >
                         <span>+</span> Add Goal
                     </button>
@@ -153,8 +153,8 @@ export default function Goals() {
                 {loading ? (
                     <div className="flex justify-center py-24">
                         <div className="relative w-12 h-12">
-                            <div className="absolute inset-0 border-4 border-purple-500/20 rounded-full"></div>
-                            <div className="absolute inset-0 border-4 border-t-purple-500 rounded-full animate-spin"></div>
+                            <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
+                            <div className="absolute inset-0 border-4 border-t-blue-500 rounded-full animate-spin"></div>
                         </div>
                     </div>
                 ) : goals.length === 0 ? (
@@ -173,7 +173,7 @@ export default function Goals() {
                             <div key={goal.id} className="glass-card p-8 border-white/10 bg-gradient-to-br from-white/[0.03] to-transparent space-y-8 relative overflow-hidden group">
                                 <div className="flex justify-between items-start relative z-10">
                                     <div className="space-y-1">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-purple-400 mb-1 block">{goal.goal_type}</span>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-1 block">{goal.goal_type}</span>
                                         <h3 className="text-2xl font-black capitalize tracking-tight">{goal.goal_type} Goal</h3>
                                     </div>
                                     <div className="flex gap-1">
@@ -201,7 +201,7 @@ export default function Goals() {
                                     <div className="space-y-2">
                                         <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/5">
                                             <div
-                                                className="bg-gradient-to-r from-purple-600 to-blue-600 h-full transition-all duration-1000 relative shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+                                                className="bg-gradient-to-r from-blue-600 to-blue-400 h-full transition-all duration-1000 relative shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                                                 style={{ width: `${goal.progress_percentage}%` }}
                                             >
                                                 <div className="absolute top-0 right-0 w-2 h-full bg-white/30 blur-[2px]"></div>
@@ -239,7 +239,7 @@ export default function Goals() {
                     <div className="glass-card bg-[#0f172a] border-white/10 p-10 max-w-xl w-full space-y-8 shadow-2xl relative animate-in zoom-in slide-in-from-bottom-8 duration-500">
                         <div className="flex justify-between items-center">
                             <div>
-                                <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-purple-500 mb-1">Entry</h2>
+                                <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-blue-500 mb-1">Entry</h2>
                                 <h3 className="text-3xl font-black tracking-tight">{showAddModal ? "New Goal" : "Edit Goal"}</h3>
                             </div>
                             <button onClick={() => { setShowAddModal(false); setShowEditModal(false); }} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors text-slate-400 hover:text-white">
@@ -257,8 +257,8 @@ export default function Goals() {
                                             type="button"
                                             onClick={() => showAddModal ? setNewGoal({ ...newGoal, goal_type: type }) : setEditGoal({ ...editGoal, goal_type: type })}
                                             className={`py-3 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${(showAddModal ? newGoal.goal_type : editGoal.goal_type) === type
-                                                    ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-600/30'
-                                                    : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'
+                                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/30'
+                                                : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'
                                                 }`}
                                         >
                                             {type}
@@ -272,7 +272,7 @@ export default function Goals() {
                                 <input
                                     type="number"
                                     required
-                                    className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-bold focus:bg-white/[0.08]"
+                                    className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold focus:bg-white/[0.08]"
                                     placeholder="e.g. 5,00,000"
                                     value={showAddModal ? newGoal.target_amount : editGoal.target_amount}
                                     onChange={(e) => showAddModal ? setNewGoal({ ...newGoal, target_amount: e.target.value }) : setEditGoal({ ...editGoal, target_amount: e.target.value })}
@@ -285,7 +285,7 @@ export default function Goals() {
                                     <input
                                         type="number"
                                         required
-                                        className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-bold focus:bg-white/[0.08]"
+                                        className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold focus:bg-white/[0.08]"
                                         placeholder="5,000"
                                         value={showAddModal ? newGoal.monthly_contribution : editGoal.monthly_contribution}
                                         onChange={(e) => showAddModal ? setNewGoal({ ...newGoal, monthly_contribution: e.target.value }) : setEditGoal({ ...editGoal, monthly_contribution: e.target.value })}
@@ -296,7 +296,7 @@ export default function Goals() {
                                     <input
                                         type="date"
                                         required
-                                        className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-bold focus:bg-white/[0.08]"
+                                        className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold focus:bg-white/[0.08]"
                                         value={showAddModal ? newGoal.target_date : editGoal.target_date}
                                         onChange={(e) => showAddModal ? setNewGoal({ ...newGoal, target_date: e.target.value }) : setEditGoal({ ...editGoal, target_date: e.target.value })}
                                     />
@@ -307,7 +307,7 @@ export default function Goals() {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Goal Status</label>
                                     <select
-                                        className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-bold cursor-pointer appearance-none"
+                                        className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold cursor-pointer appearance-none"
                                         value={editGoal.status}
                                         onChange={(e) => setEditGoal({ ...editGoal, status: e.target.value })}
                                     >
@@ -318,7 +318,7 @@ export default function Goals() {
                                 </div>
                             )}
 
-                            <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 py-5 rounded-[1.25rem] text-sm font-black uppercase tracking-[0.2em] text-white transition-all shadow-xl shadow-purple-600/30 mt-6 active:scale-[0.98]">
+                            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-[1.25rem] text-sm font-black uppercase tracking-[0.2em] text-white transition-all shadow-xl shadow-blue-600/30 mt-6 active:scale-[0.98]">
                                 {showAddModal ? "Create Goal" : "Update Goal"}
                             </button>
                         </form>
