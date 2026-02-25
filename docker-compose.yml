@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: wealth_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Tousiff966
+      POSTGRES_DB: wealth_management
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: wealth_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wealth_backend
+    environment:
+      DATABASE_URL: postgresql://postgres:Tousiff966@postgres:5432/wealth_management
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: xK9mP2nQ5rT8vW1yZ4aC6dF9hJ2lN5pR7sU0wX3zA6bC
