@@ -46,3 +46,6 @@ npm run dev
 
 ## 📝 License
 This project was developed as part of the **Infosys Springboard Virtual Internship**.
+
+
+Instead of celery , used a refresh price button in portfolio page to update prices

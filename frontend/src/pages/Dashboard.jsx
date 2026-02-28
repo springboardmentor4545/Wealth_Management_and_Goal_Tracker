@@ -20,8 +20,32 @@ export default function Dashboard() {
   const [growthTimeRange, setGrowthTimeRange] = useState('ALL');
 
   useEffect(() => {
-    fetchData();
+    const initDashboard = async () => {
+      await fetchData();
+      checkAndRefreshPrices();
+    };
+    initDashboard();
   }, []);
+
+  const checkAndRefreshPrices = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // 1. Get last refresh time
+      const refreshRes = await axios.get("http://127.0.0.1:8000/api/v1/portfolio/last-refresh", { headers });
+      const lastRefresh = refreshRes.data.last_refresh_at;
+
+      // 2. If no refresh data or last refresh > 24 hours ago, trigger update
+      const iahAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      if (!lastRefresh || new Date(lastRefresh) < iahAgo) {
+        console.log("Prices are stale or missing, triggering lazy update...");
+        handleRefreshPrices();
+      }
+    } catch (err) {
+      console.error("Error checking refresh status:", err);
+    }
+  };
 
   const fetchData = async () => {
     try {

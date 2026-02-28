@@ -11,8 +11,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 import hashlib
 import uvicorn
-from app.services.worker import update_all_investment_prices
-from app.services.market_data import fetch_latest_price, search_symbols
+from app.services.market_data import fetch_latest_price, search_symbols, update_all_investment_prices_logic
 import os
 import math
 from dotenv import load_dotenv
@@ -795,9 +794,9 @@ async def list_investments(
     return investments
 
 @app.post("/api/v1/portfolio/update-prices")
-async def trigger_price_update(current_user: User = Depends(get_current_user)):
+async def trigger_price_update(db: Session = Depends(get_db)):
     """Manual trigger for price updates (synchronous for immediate results)"""
-    result = update_all_investment_prices()
+    result = update_all_investment_prices_logic(SessionLocal, Investment)
     return {"message": "Price update completed", "detail": result}
 
 @app.get("/api/v1/portfolio/last-refresh")
@@ -870,6 +869,101 @@ async def get_simulation(
     return sim
 
 # Recommendation Endpoints
+@app.get("/api/v1/recommendations/status")
+async def get_recommendations_status(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get current allocation and recommendations based on user's risk profile"""
+    
+    # Calculate current allocation
+    investments = db.query(Investment).filter(Investment.user_id == current_user.id).all()
+    total_value = sum(float(inv.current_value) for inv in investments)
+    
+    current_allocation = {
+        "stock": 0,
+        "etf": 0,
+        "mutual_fund": 0,
+        "bond": 0,
+        "cash": 0
+    }
+    
+    if total_value > 0:
+        for inv in investments:
+            asset_type = inv.asset_type.value
+            if asset_type in current_allocation:
+                current_allocation[asset_type] += float(inv.current_value) / total_value * 100
+    
+    # Define target allocations based on risk profile
+    target_allocations = {
+        "conservative": {
+            "stock": 20,
+            "etf": 10,
+            "mutual_fund": 20,
+            "bond": 40,
+            "cash": 10
+        },
+        "moderate": {
+            "stock": 35,
+            "etf": 15,
+            "mutual_fund": 20,
+            "bond": 20,
+            "cash": 10
+        },
+        "aggressive": {
+            "stock": 50,
+            "etf": 20,
+            "mutual_fund": 15,
+            "bond": 10,
+            "cash": 5
+        }
+    }
+    
+    risk_profile = current_user.risk_profile.value if current_user.risk_profile else "moderate"
+    target_allocation = target_allocations.get(risk_profile, target_allocations["moderate"])
+    
+    # Generate rebalancing suggestions
+    asset_categories = {
+        "stock": "Equities",
+        "etf": "ETFs",
+        "mutual_fund": "Mutual Funds",
+        "bond": "Bonds",
+        "cash": "Cash"
+    }
+    
+    suggestions = []
+    for asset_type, target_pct in target_allocation.items():
+        current_pct = round(current_allocation.get(asset_type, 0), 2)
+        difference = round(target_pct - current_pct, 2)
+        
+        # Determine action
+        if abs(difference) < 2:
+            action = "Maintain"
+            message = f"Your {asset_categories[asset_type]} allocation is well-balanced at {current_pct}%."
+        elif difference > 0:
+            action = "Increase"
+            message = f"Consider increasing {asset_categories[asset_type]} allocation to {target_pct}% for better risk alignment."
+        else:
+            action = "Reduce"
+            message = f"Consider reducing {asset_categories[asset_type]} allocation from {current_pct}% to {target_pct}%."
+        
+        suggestions.append({
+            "category": asset_categories[asset_type],
+            "action": action,
+            "difference": difference,
+            "message": message,
+            "current_pct": round(current_pct, 1),
+            "target_pct": round(target_pct, 1)
+        })
+    
+    return {
+        "current_allocation": current_allocation,
+        "target_allocation": target_allocation,
+        "risk_profile": risk_profile,
+        "total_value": total_value,
+        "suggestions": suggestions
+    }
+
 @app.get("/api/v1/recommendations", response_model=List[RecommendationResponse])
 async def list_recommendations(
     current_user: User = Depends(get_current_user),

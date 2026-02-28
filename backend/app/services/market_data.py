@@ -107,3 +107,44 @@ def search_symbols(query: str):
     except Exception as e:
         logger.error(f"Search error for {query}: {e}")
         return []
+def update_all_investment_prices_logic(db_session_factory, InvestmentModel):
+    """
+    Synchronous logic to update market prices for all unique symbols in the database.
+    This replaces the background task logic.
+    """
+    db = db_session_factory()
+    try:
+        # 1. Get all unique symbols
+        investments = db.query(InvestmentModel).all()
+        symbols = list(set([inv.symbol for inv in investments if inv.symbol]))
+        
+        if not symbols:
+            logger.info("No symbols to update.")
+            return "No symbols found"
+
+        # 2. Fetch prices in batches
+        logger.info(f"Fetching prices for {len(symbols)} symbols...")
+        price_data = fetch_prices_batch(symbols)
+        
+        # 3. Update the database
+        updates_count = 0
+        for inv in investments:
+            if inv.symbol in price_data:
+                price, timestamp, change = price_data[inv.symbol]
+                if price is not None:
+                    inv.last_price = price
+                    inv.last_price_at = timestamp
+                    inv.current_value = float(inv.units) * price
+                    inv.daily_change = change
+                    updates_count += 1
+        
+        db.commit()
+        logger.info(f"Updated {updates_count} investments.")
+        return f"Successfully updated {updates_count} investments"
+        
+    except Exception as e:
+        logger.error(f"Error in price update: {e}")
+        db.rollback()
+        return f"Error: {str(e)}"
+    finally:
+        db.close()
